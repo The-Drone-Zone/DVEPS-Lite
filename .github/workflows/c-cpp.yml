@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check C++ Compiler Version
+      run: g++ --version
+    
     # checkout codebase
     - name: Checkout Code
       uses: actions/checkout@v4
