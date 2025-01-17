@@ -2,9 +2,9 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "*" ]
 
 jobs:
   build:
@@ -12,12 +12,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    # checkout codebase
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Run Static Analysis
+    - name: Run Static Analysis
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+        cppcheck --enable=all --inconclusive --error-exitcode=1 .
+
+    # install clang-format
+    - name: Install clang-format
+      run: sudo apt-get update && sudo apt-get install -y clang-format
+
+    # run format test
+    - name: Check Code Formatting
+      run: |
+        clang-format --version
+        find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
+
+    # install dependencies
     - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      run: cmake .
+
+    # build code
+    - name: build
+      run: cmake --build .
+    
+    # run tests
+    - name: run tests
+      run: ctest
+
+    # no deployment stategy yet 
+    # - name: make distcheck  
+    #   run: make distcheck
