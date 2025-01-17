@@ -19,6 +19,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # install build-essential for static analysis
+    - name: Install build-essential
+      run: sudo apt-get install -y build-essential
+
     # Run Static Analysis
     - name: Run Static Analysis
       run: |
