@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
     std::cout << "Hello, World!" << std::endl;
 
     if (argc != 3) {
