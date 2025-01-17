@@ -28,7 +28,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y cppcheck
-        cppcheck --enable=all --inconclusive --error-exitcode=1 .
+        cppcheck --enable=all --inconclusive --error-exitcode=1 -I/usr/include/c++/$(gcc -dumpversion) .
 
     # install clang-format
     - name: Install clang-format
