@@ -12,46 +12,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check C++ Compiler Version
-      run: g++ --version
-    
-    # checkout codebase
+
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # install build-essential for static analysis
-    - name: Install build-essential
-      run: sudo apt-get install -y build-essential
-
-    # Run Static Analysis
-    - name: Run Static Analysis
+    - name: Set up Docker container
       run: |
-        sudo apt-get update
-        sudo apt-get install -y cppcheck
-        cppcheck --enable=all --inconclusive --error-exitcode=1 --suppress=missingIncludeSystem .
+        docker pull dshay22/my-cpp-ci:latest
+        docker run --name cpp-ci-container -v $(pwd):/workspace -w /workspace dshay22/my-cpp-ci:latest bash -c "
+          set -e
+          
+          g++ --version
 
-    # install clang-format
-    - name: Install clang-format
-      run: sudo apt-get update && sudo apt-get install -y clang-format
+          cppcheck --enable=all --inconclusive --error-exitcode=1 --suppress=missingIncludeSystem .
 
-    # run format test
-    - name: Check Code Formatting
-      run: |
-        clang-format --version
-        find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
-
-    # install dependencies
-    - name: configure
-      run: cmake .
-
-    # build code
-    - name: build
-      run: cmake --build .
-    
-    # run tests
-    - name: run tests
-      run: ctest
-
-    # no deployment stategy yet 
-    # - name: make distcheck  
-    #   run: make distcheck
+          clang-format --version
+          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
+          
+          cmake .
+          cmake --build .
+          ctest
+        "
+    - name: Clean up
+      run: docker rm cpp-ci-container
