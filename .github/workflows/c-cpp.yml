@@ -20,6 +20,7 @@ jobs:
       run: |
         docker pull dshay22/my-cpp-ci:latest
         docker run --name cpp-ci-container -v $(pwd):/workspace -w /workspace dshay22/my-cpp-ci:latest bash -c "
+          set -e
           
           g++ --version
 
