@@ -29,17 +29,10 @@ include_directories(src)
 # Add the source file
 add_library(math_functions src/math_functions.cpp)
 
-# # Add Google Test
-# include(FetchContent)
-# FetchContent_Declare(
-#   googletest
-#   URL https://github.com/google/googletest/archive/refs/tags/release-1.13.0.zip
-# )
-# FetchContent_MakeAvailable(googletest)
-
-# # Add the test executable
-# add_executable(test_math_functions tests/test_math_functions.cpp)
-# target_link_libraries(test_math_functions math_functions gtest gtest_main)
+target_sources(my_target
+    FILE_SET HEADERS
+        math_functions.h
+)
 
 # Add sources
 set(SOURCES
