@@ -2,11 +2,9 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "*" ]
-  schedule:
-    - cron: '26 6 * * 1'
+    branches: [ "main", "develop" ]
 
 jobs:
   analyze:
@@ -49,6 +47,7 @@ jobs:
           echo "Building code for ${{ matrix.language }}..."
           if [ "${{ matrix.language }}" == "c-cpp" ]; then
             echo "Running make or equivalent build commands for C/C++..."
+            cd processor
             cmake .
             cmake --build .
             exit 0

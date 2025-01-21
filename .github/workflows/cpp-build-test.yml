@@ -1,0 +1,31 @@
+name: C++ Build and Test with Docker
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Build the Docker image
+    - name: Build Docker image
+      run: docker build -t cpp-ci-container ./DVEPS-Lite
+
+    # Run the container and execute tests
+    - name: Run tests in Docker container
+      run: |
+        docker run --rm cpp-ci-container bash -c "
+        mkdir -p processor/build &&
+        cd processor/build &&
+        cmake .. &&
+        make &&
+        ./test_math_functions
+        "
