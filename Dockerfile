@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     clang-format \
     cmake \
     g++ \
+    git \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
