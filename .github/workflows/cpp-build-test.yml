@@ -17,7 +17,7 @@ jobs:
 
     # Build the Docker image
     - name: Build Docker image
-      run: docker build -t cpp-ci-container ./DVEPS-Lite
+      run: docker build -t cpp-ci-container .
 
     # Run the container and execute tests
     - name: Run tests in Docker container
