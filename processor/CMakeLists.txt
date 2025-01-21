@@ -24,7 +24,7 @@ add_test(
 #### ADDED BY AIDAN (BELOW) ####
 
 # Include directories
-include_directories(include)
+include_directories(processor/include)
 
 # Add the source file
 add_library(math_functions src/math_functions.cpp)
