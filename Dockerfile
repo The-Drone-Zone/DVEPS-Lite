@@ -14,5 +14,8 @@ RUN apt-get update && apt-get install -y \
 # Set up the working directory
 WORKDIR /workspace
 
+# Copy project files into the container
+COPY processor /workspace/processor
+
 # Set the default command
 CMD ["bash"]
