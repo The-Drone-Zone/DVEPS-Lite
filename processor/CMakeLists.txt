@@ -45,12 +45,12 @@ add_library(math_functions src/math_functions.cpp)
 
 # Add sources
 set(SOURCES
-    processor/src/math_functions.cpp
+    src/math_functions.cpp
 )
 
 # Add test executable
 add_executable(test_math_functions
-    processor/tests/test_math_functions.cpp
+    tests/test_math_functions.cpp
     ${SOURCES}
 )
 
