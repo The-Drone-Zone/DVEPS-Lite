@@ -29,6 +29,7 @@ jobs:
           clang-format --version
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
+          cd processor
           cmake .
           cmake --build .
           ctest
