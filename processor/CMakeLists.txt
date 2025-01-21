@@ -24,12 +24,10 @@ add_test(
 #### ADDED BY AIDAN (BELOW) ####
 
 # Include directories
-include_directories(include)
+include_directories(src)
 
 # Add the source file
 add_library(math_functions src/math_functions.cpp)
-
-
 
 # # Add Google Test
 # include(FetchContent)
