@@ -37,6 +37,7 @@ target_sources(my_target
 # Add sources
 set(SOURCES
     src/math_functions.cpp
+    src/math_functions.h
 )
 
 # Add test executable
