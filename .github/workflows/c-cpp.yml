@@ -2,12 +2,10 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "*" ]
 
 jobs:
-  build:
+  build-format:
 
     runs-on: ubuntu-latest
 
@@ -16,10 +14,14 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Docker container
+    # Build the Docker image
+    - name: Build Docker image
+      run: docker build -t cpp-ci-container .
+
+    # Setup 
+    - name: Run Docker, Check formatting, and CppCheck
       run: |
-        docker pull dshay22/my-cpp-ci:latest
-        docker run --name cpp-ci-container -v $(pwd):/workspace -w /workspace dshay22/my-cpp-ci:latest bash -c "
+        docker run --rm cpp-ci-container bash -c "
           set -e
           
           g++ --version
@@ -29,10 +31,33 @@ jobs:
           clang-format --version
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
-          cd processor
-          cmake .
-          cmake --build .
+          mkdir -p processor/build &&
+          cmake .. &&
+          cmake --build .. &&
           ctest
         "
     - name: Clean up
       run: docker rm cpp-ci-container
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Build the Docker image
+    - name: Build Docker image
+      run: docker build -t cpp-ci-container .
+
+    # Run the container and execute tests
+    - name: Run tests in Docker container
+      run: |
+        docker run --rm cpp-ci-container bash -c "
+        mkdir -p processor/build &&
+        cd processor/build &&
+        cmake .. &&
+        cmake --build . &&
+        ./test_math_functions
+        "
