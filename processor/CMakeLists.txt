@@ -29,6 +29,8 @@ include_directories(include)
 # Add the source file
 add_library(math_functions src/math_functions.cpp)
 
+
+
 # # Add Google Test
 # include(FetchContent)
 # FetchContent_Declare(
@@ -37,9 +39,20 @@ add_library(math_functions src/math_functions.cpp)
 # )
 # FetchContent_MakeAvailable(googletest)
 
-# Add the test executable
-add_executable(test_math_functions tests/test_math_functions.cpp)
+# # Add the test executable
+# add_executable(test_math_functions tests/test_math_functions.cpp)
 # target_link_libraries(test_math_functions math_functions gtest gtest_main)
+
+# Add sources
+set(SOURCES
+    processor/src/math_functions.cpp
+)
+
+# Add test executable
+add_executable(test_math_functions
+    processor/tests/test_math_functions.cpp
+    ${SOURCES}
+)
 
 # Find and link Google Test
 find_package(GTest REQUIRED)
