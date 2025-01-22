@@ -24,20 +24,14 @@ add_test(
 #### ADDED BY AIDAN (BELOW) ####
 
 # Include directories
-include_directories(src)
+include_directories(include)
 
 # Add the source file
 add_library(math_functions src/math_functions.cpp)
 
-target_sources(my_target
-    FILE_SET HEADERS
-        math_functions.h
-)
-
 # Add sources
 set(SOURCES
     src/math_functions.cpp
-    src/math_functions.h
 )
 
 # Add test executable
