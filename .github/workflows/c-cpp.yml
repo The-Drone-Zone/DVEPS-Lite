@@ -36,7 +36,7 @@ jobs:
           mkdir -p processor/build &&
           cd processor/build &&
           cmake .. &&
-          cmake --build . &&
+          cmake --build .
         "
 
   test:
