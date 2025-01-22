@@ -28,6 +28,8 @@ jobs:
 
           clang-format --version
           export CLANG_FORMAT_STYLE_FILE=/processor/.clang-format
+          cd processor
+          ls -la
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
           
           mkdir -p processor/build &&
