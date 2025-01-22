@@ -22,12 +22,12 @@ jobs:
     - name: Run Docker, Check formatting, and CppCheck
       run: |
         docker run --rm cpp-ci-container bash -c "
-          cd processor
           set -e
           
           g++ --version
 
           clang-format --version
+          cd processor
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
           mkdir -p build &&
