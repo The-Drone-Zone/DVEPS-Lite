@@ -20,5 +20,8 @@ COPY . /GCS
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
+# Set PYTHONPATH to include the project directory
+ENV PYTHONPATH=/GCS
+
 # Set the default command (optional)
 CMD ["bash"]
