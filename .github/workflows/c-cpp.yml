@@ -30,12 +30,16 @@ jobs:
           export CLANG_FORMAT_STYLE_FILE=/processor/.clang-format
           cd processor
           ls -la
+          echo "Reviewing Formatting"
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
           
+          echo "Building cmake"
           mkdir -p build &&
           cd build &&
           cmake .. &&
           cmake --build .. &&
+
+          echo "Running ctest"
           ctest
         "
     - name: Clean up
