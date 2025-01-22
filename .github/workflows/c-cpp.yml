@@ -27,7 +27,8 @@ jobs:
           g++ --version
 
           clang-format --version
-          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=/processor/.clang-format
+          export CLANG_FORMAT_STYLE_FILE=/processor/.clang-format
+          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
           
           mkdir -p processor/build &&
           cd processor/build &&
