@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up the working directory
-WORKDIR /workspace
+WORKDIR /GCS
 
 # Copy project files into the container
-COPY . /workspace
+COPY . /GCS
 
 # Install dependencies
 RUN pip install --no-cache-dir --upgrade pip \
