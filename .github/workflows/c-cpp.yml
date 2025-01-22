@@ -37,9 +37,6 @@ jobs:
           cd processor/build &&
           cmake .. &&
           cmake --build . &&
-
-          echo \"Running ctest\"
-          ctest
         "
 
   test:
