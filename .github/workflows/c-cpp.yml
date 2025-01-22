@@ -19,7 +19,7 @@ jobs:
       run: docker build -t cpp-ci-container .
 
     # Setup 
-    - name: Run Docker, Check formatting, and CppCheck
+    - name: Run Docker and Check Formatting
       run: |
         docker run --rm cpp-ci-container bash -c "
           set -e
@@ -27,7 +27,7 @@ jobs:
           g++ --version
 
           clang-format --version
-          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=processor/.clang-format
+          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=/processor/.clang-format
           
           mkdir -p processor/build &&
           cd processor/build &&
