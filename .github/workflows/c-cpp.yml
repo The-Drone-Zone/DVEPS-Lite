@@ -27,6 +27,7 @@ jobs:
           g++ --version
 
           clang-format --version
+          ls
           cd processor
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
