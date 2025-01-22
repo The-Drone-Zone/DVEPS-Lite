@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "math_functions.h"
 
 // Test case for the add function
