@@ -1,4 +1,4 @@
-name: Python Formatter and Tests with Docker
+name: Python CI
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
       # Step 2: Build Docker image
       - name: Build Docker image
         run: |
-          docker build -t python-ci .
+          docker build -t python-ci ./GCS
 
       # Step 3: Run Black formatter inside Docker
       - name: Run Black formatter
