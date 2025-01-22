@@ -1,0 +1,42 @@
+name: Python Formatter and Tests with Docker
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  format_and_tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Navigate to GCS Directory
+        run: cd GCS
+
+      # Step 2: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t python-ci .
+
+      # Step 3: Run Black formatter inside Docker
+      - name: Run Black formatter
+        run: |
+          docker run --rm python-ci bash -c "
+            set -e
+            echo 'Running Black formatter'
+            black --check --diff .
+          "
+
+      # Step 4: Run pytest tests inside Docker
+      - name: Run Pytest
+        run: |
+          docker run --rm python-ci bash -c "
+            set -e
+            echo 'Running Pytest'
+            pytest --maxfail=1 --disable-warnings -q
+          "

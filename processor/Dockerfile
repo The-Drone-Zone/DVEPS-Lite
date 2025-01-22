@@ -25,7 +25,7 @@ RUN git clone https://github.com/google/googletest.git /googletest && \
 WORKDIR /workspace
 
 # Copy project files into the container
-COPY processor /workspace/processor
+COPY . /workspace
 
 # Set the default command
 CMD ["bash"]
