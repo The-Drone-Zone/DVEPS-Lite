@@ -1,6 +1,7 @@
 import pytest
 from src.math_functions import Math
 
+
 def test_add():
     test = Math()
     assert test.add(2, 3) == 5

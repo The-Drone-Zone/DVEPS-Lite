@@ -7,7 +7,7 @@ on:
     branches: [ "*" ]
 
 jobs:
-  format_and_tests:
+  format-test:
     runs-on: ubuntu-latest
     
     steps:
