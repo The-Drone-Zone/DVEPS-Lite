@@ -37,7 +37,6 @@ jobs:
         run: |
           docker run --rm python-ci bash -c "
             set -e
-            ls
             echo 'Running Pytest'
             pytest --maxfail=1 --disable-warnings -q
           "

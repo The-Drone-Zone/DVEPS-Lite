@@ -19,7 +19,7 @@ jobs:
 
     # Build the Docker image
     - name: Build Docker image
-      run: docker build -t cpp-ci-container ./processor
+      run: docker build -t cpp-ci-container .
 
     # Run Clang Formatter inside Docker
     - name: Run Clang formatter
