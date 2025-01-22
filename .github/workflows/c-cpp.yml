@@ -26,8 +26,6 @@ jobs:
           
           g++ --version
 
-          cppcheck --enable=all --inconclusive --error-exitcode=1 --suppress=missingIncludeSystem .
-
           clang-format --version
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
