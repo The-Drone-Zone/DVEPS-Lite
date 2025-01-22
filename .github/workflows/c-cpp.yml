@@ -32,6 +32,7 @@ jobs:
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
           
           mkdir -p processor/build &&
+          cd processor/build &&
           cmake .. &&
           cmake --build .. &&
           ctest
