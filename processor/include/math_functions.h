@@ -3,4 +3,4 @@
 
 int add(int a, int b);
 
-#endif // MATH_FUNCTIONS_H
+#endif  // MATH_FUNCTIONS_H
