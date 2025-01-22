@@ -48,7 +48,10 @@ jobs:
           if [ "${{ matrix.language }}" == "c-cpp" ]; then
             echo "Running make or equivalent build commands for C/C++..."
             cd processor
-            cmake .
+            rm -rf build/
+            mkdir -p build &&
+            cd build &&
+            cmake .. &&
             cmake --build .
             exit 0
           fi
