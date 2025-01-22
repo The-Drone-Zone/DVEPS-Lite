@@ -32,8 +32,8 @@ jobs:
           ls -la
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
           
-          mkdir -p processor/build &&
-          cd processor/build &&
+          mkdir -p build &&
+          cd build &&
           cmake .. &&
           cmake --build .. &&
           ctest
