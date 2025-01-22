@@ -21,11 +21,8 @@ RUN git clone https://github.com/google/googletest.git /googletest && \
     make install && \
     rm -rf /googletest
 
-# Set up the working directory
-WORKDIR /processor
-
 # Copy project files into the container
-COPY . /processor
+COPY . .
 
 # Set the default command
 CMD ["bash"]
