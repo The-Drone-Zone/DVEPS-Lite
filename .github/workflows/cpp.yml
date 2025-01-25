@@ -1,0 +1,55 @@
+name: C++ CI
+
+on:
+  push:
+    branches: [ "*" ]
+
+jobs:
+  build-format-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Navigate to Processor Directory
+      run: cd processor
+
+    # Build the Docker image
+    - name: Build Docker image
+      run: docker build -t cpp-ci-container ./processor
+
+    # Run Clang Formatter inside Docker
+    - name: Run Clang formatter
+      run: |
+        docker run --rm cpp-ci-container bash -c "
+          set -e
+          
+          g++ --version
+
+          clang-format --version
+          echo \"Reviewing Formatting\"
+          find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
+          
+          echo \"Building cmake\"
+          rm -rf build/
+          mkdir -p build &&
+          cd build &&
+          cmake .. &&
+          cmake --build .
+        "
+
+      # Run Google Tests inside the container
+    - name: Run Google Tests
+      run: |
+        docker run --rm cpp-ci-container bash -c "
+          rm -rf build/
+          mkdir -p build &&
+          cd build &&
+          cmake .. &&
+          cmake --build . &&
+          echo 'Running Google Tests'
+          ./test_math_functions
+        "

@@ -1,0 +1,63 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: python
+            build-mode: none
+        # Supported languages: 'c-cpp', 'python', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'ruby', 'swift'
+
+    steps:
+      # Check out the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Initialize CodeQL with the appropriate language and build mode
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # Uncomment and specify custom queries here, if needed
+          # queries: security-extended,security-and-quality
+
+      # Build step for languages requiring manual mode
+      - name: Build code (manual build mode)
+        if: matrix.build-mode == 'manual'
+        run: |
+          echo "Building code for ${{ matrix.language }}..."
+          if [ "${{ matrix.language }}" == "c-cpp" ]; then
+            echo "Running make or equivalent build commands for C/C++..."
+            cd processor
+            rm -rf build/
+            mkdir -p build &&
+            cd build &&
+            cmake .. &&
+            cmake --build .
+            exit 0
+          fi
+
+      # Perform the CodeQL analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
