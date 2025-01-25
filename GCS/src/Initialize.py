@@ -3,7 +3,7 @@ from tkinter import ttk
 
 from CommandScreen import CommandScreen
 from Utils.Globals import Globals
-from Log import LoggingWindow
+from GCS.Utils.Log import LoggingWindow
 
 
 class Initialize:
