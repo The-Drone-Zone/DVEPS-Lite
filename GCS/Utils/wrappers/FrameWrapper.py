@@ -3,11 +3,15 @@ import tkinter as tk
 
 class FrameWrapper:
     def __init__(self):
-        self.window = None
+        self.frames = {}
 
-    def create_frame(self, window, **kwargs):
+    def create_frame(self, window, name, **kwargs):
+        if name in self.frames:
+            raise ValueError(f"A frame with the name '{name}' already exists.")
+        
         frame = tk.Frame(window, **kwargs)
-        frame.grid_propagate(False) 
+        frame.grid_propagate(False)
+        self.frames[name] = frame
         return frame
 
     def add_to_window(self, frame, row=0, column=0, **grid_options):

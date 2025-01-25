@@ -14,6 +14,7 @@ class WindowWrapper:
         window = tk.Toplevel()
         window.title(title)
         window.geometry(f"{width}x{height}")
+        window.protocol("WM_DELETE_WINDOW", lambda: self.close_window(window_id, window))
         self.windows[window_id] = window
 
 
@@ -32,6 +33,12 @@ class WindowWrapper:
 
         self.windows[window_id].destroy()
         del self.windows[window_id]
+
+
+    def close_window(self, window_id, window):
+        window.destroy()
+        if window_id in self.windows:
+            del self.windows[window_id]
 
 
     #message and a input box all in one
@@ -59,6 +66,7 @@ class WindowWrapper:
                 value = input_value.get()
                 print(f"Input received: {value}, Window ID: {window_id}")
                 entry.delete(0, tk.END)
+                self.windows.pop(window_id, None)
                 window.destroy()
 
             submit_button = tk.Button(window, text="Submit", command=on_submit)
