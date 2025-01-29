@@ -8,7 +8,7 @@ class FrameWrapper:
     def create_frame(self, window, name, **kwargs):
         if name in self.frames:
             raise ValueError(f"A frame with the name '{name}' already exists.")
-        
+
         frame = tk.Frame(window, **kwargs)
         frame.grid_propagate(False)
         self.frames[name] = frame

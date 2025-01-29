@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
@@ -18,4 +19,3 @@ class Globals:
 
         self.drone = Drone(self.Widndow_wrapper)
         self.Utils = Utils(self.Widndow_wrapper)
-       
