@@ -1,5 +1,9 @@
+import os
+import sys
 import tkinter as tk
 from tkinter import ttk
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from Map import Map
 from Utils.Globals import Globals
@@ -17,8 +21,7 @@ class CommandScreen:
         #only these frames can expand
         self.expand_btns = {
             "video_frame" : tk.Button,
-            "lidar_frame" : tk.Button,
-            "map_frame"   : tk.Button
+            "lidar_frame" : tk.Button
         }
 
         #major command frames
@@ -119,7 +122,7 @@ class CommandScreen:
 
     def create_expand_buttons(self):
         #for loop add an expand button to each of the frames that we want to expand
-        for frame_name, frame in zip(["video_frame", "lidar_frame", '''"map_frame"'''], [self.video_frame, self.lidar_frame, self.map_frame]):
+        for frame_name, frame in zip(["video_frame", "lidar_frame"], [self.video_frame, self.lidar_frame]):
             self.expand_btns[frame_name] = self.BUttton_wrapper.create_button(frame, 20, text="Expand", command=lambda f=frame: self.expand_frame(f))
             self.BUttton_wrapper.add_to_window(self.expand_btns[frame_name], row=0, column=0, padx=5, pady=5)
 

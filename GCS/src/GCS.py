@@ -1,5 +1,3 @@
-import os
-import sys
 from Initialize import Initialize
 
 if __name__ == "__main__":

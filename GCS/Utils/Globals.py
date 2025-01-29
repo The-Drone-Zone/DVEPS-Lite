@@ -1,11 +1,11 @@
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
-from Drone import Drone
+from src.Drone import Drone
 from Utils.wrappers.ButtonWrapper import ButtonWrapper
 from Utils.wrappers.FrameWrapper import FrameWrapper
-from Map import Map
 from Utils.Utils import Utils
 from Utils.wrappers.WindowWrapper import WindowWrapper
 

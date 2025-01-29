@@ -1,9 +1,13 @@
+import os
+import sys
 import tkinter as tk
 from tkinter import ttk
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from CommandScreen import CommandScreen
 from Utils.Globals import Globals
-from GCS.Utils.Log import LoggingWindow
+from Utils.Log import LoggingWindow
 
 
 class Initialize:
@@ -31,4 +35,4 @@ def tab_selected(event): # TODO DELETE LATER
     notebook = event.widget
     tab_id = notebook.select()
     tab_text = notebook.tab(tab_id, 'text')
-    print(f"Selected Tab Text: {tab_text}")
+    print(f"Selected Tab Text: {tab_text}") 
