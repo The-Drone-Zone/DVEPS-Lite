@@ -3,6 +3,7 @@ from tkintermapview import TkinterMapView
 import os
 from Utils.connected import is_connected
 
+
 class Map:
     def __init__(self, map_frame, globals):
         # Initialize global variables
@@ -15,18 +16,29 @@ class Map:
             self.map_widget = TkinterMapView(map_frame, corner_radius=0)
         else:
             print("Using Offline Map")
-            script_directory = os.path.dirname(os.path.abspath(__file__))  # Current script directory
+            script_directory = os.path.dirname(
+                os.path.abspath(__file__)
+            )  # Current script directory
             parent_directory = os.path.dirname(script_directory)  # Move one folder back
-            database_path = os.path.join(parent_directory, "offline_tiles.db")  # DB in parent dir
-            self.map_widget = TkinterMapView(map_frame, corner_radius=0, use_database_only=True,
-                            max_zoom=22, database_path=database_path)
+            database_path = os.path.join(
+                parent_directory, "offline_tiles.db"
+            )  # DB in parent dir
+            self.map_widget = TkinterMapView(
+                map_frame,
+                corner_radius=0,
+                use_database_only=True,
+                max_zoom=22,
+                database_path=database_path,
+            )
             # self.map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga")
 
         # Set widget location and size
         self.map_widget.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         # Set Starting Location
-        self.map_widget.set_position(32.2319, -110.9535) # University of Arizona, Tucson, AZ
+        self.map_widget.set_position(
+            32.2319, -110.9535
+        )  # University of Arizona, Tucson, AZ
 
         # Track markers
         self.markers = []
@@ -34,13 +46,15 @@ class Map:
         self.path = None
 
         # Add Create Marker Event
-        self.map_widget.add_right_click_menu_command(label="Add Marker",
-                                        command=self.add_marker_event,
-                                        pass_coords=True)
+        self.map_widget.add_right_click_menu_command(
+            label="Add Marker", command=self.add_marker_event, pass_coords=True
+        )
 
     def add_marker_event(self, coords):
         print("Add marker:", coords)
-        new_marker = self.map_widget.set_marker(coords[0], coords[1], text=str(len(self.markers) + 1))
+        new_marker = self.map_widget.set_marker(
+            coords[0], coords[1], text=str(len(self.markers) + 1)
+        )
         self.markers.append(new_marker)
         self.marker_positions.append(new_marker.position)
         # set a path

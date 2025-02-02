@@ -21,7 +21,11 @@ class CommandScreen:
         )
 
         # only these frames can expand
-        self.expand_btns = {"video_frame": tk.Button, "lidar_frame": tk.Button, "map_frame": tk.Button}
+        self.expand_btns = {
+            "video_frame": tk.Button,
+            "lidar_frame": tk.Button,
+            "map_frame": tk.Button,
+        }
 
         # major command frames
         self.video_frame: tk.Frame = None
@@ -137,29 +141,24 @@ class CommandScreen:
         self.upload_plan_btn = self.button_wrapper.create_button(
             self.map_frame, 20, text="Upload Plan", command=self.map.upload_plan
         )
-        self.button_wrapper.add_centered_button(
-            self.upload_plan_btn, y=70
-        )
+        self.button_wrapper.add_centered_button(self.upload_plan_btn, y=70)
 
         # Create clear marks button
         self.clear_markers_btn = self.button_wrapper.create_button(
             self.map_frame, 20, text="Clear Path", command=self.map.clear_marks
         )
-        self.button_wrapper.add_centered_button(
-            self.clear_markers_btn, y=110
-        )
+        self.button_wrapper.add_centered_button(self.clear_markers_btn, y=110)
 
     def create_expand_buttons(self):
         # for loop add an expand button to each of the frames that we want to expand
         for frame_name, frame in zip(
-            ["video_frame", "lidar_frame", "map_frame"], [self.video_frame, self.lidar_frame, self.map_frame]
+            ["video_frame", "lidar_frame", "map_frame"],
+            [self.video_frame, self.lidar_frame, self.map_frame],
         ):
             self.expand_btns[frame_name] = self.button_wrapper.create_button(
                 frame, 20, text="Expand", command=lambda f=frame: self.expand_frame(f)
             )
-            self.button_wrapper.add_centered_button(
-                self.expand_btns[frame_name]
-            )
+            self.button_wrapper.add_centered_button(self.expand_btns[frame_name])
 
     def expand_frame(self, frame):
 
