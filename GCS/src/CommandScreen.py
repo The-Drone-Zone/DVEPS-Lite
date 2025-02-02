@@ -2,18 +2,18 @@ import os
 import sys
 import tkinter as tk
 from tkinter import ttk
+from Map import Map
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from Map import Map
 from Utils.Globals import Globals
 
 
 class CommandScreen:
     def __init__(self, notebook, globals: Globals):
         self.frame_wrapper = globals.frame_wrapper
-        self.BUttton_wrapper = globals.Button_wrapper
-        self.Widndow_wrapper = globals.Widndow_wrapper
+        self.button_wrapper = globals.button_wrapper
+        self.window_wrapper = globals.window_wrapper
         self.drone = globals.drone
 
         self.command_tab = self.frame_wrapper.create_frame(
@@ -21,7 +21,7 @@ class CommandScreen:
         )
 
         # only these frames can expand
-        self.expand_btns = {"video_frame": tk.Button, "lidar_frame": tk.Button}
+        self.expand_btns = {"video_frame": tk.Button, "lidar_frame": tk.Button, "map_frame": tk.Button}
 
         # major command frames
         self.video_frame: tk.Frame = None
@@ -64,10 +64,10 @@ class CommandScreen:
         ###############################################################################
         ###############################################################################
         # These variables are for the Map Frame
-        self.Map = Map("defualt_map", globals)
+
+        self.map = Map(self.map_frame, globals)
         self.upload_plan_btn: tk.Button = None
-        self.add_map_btn: tk.Button = None
-        self.open_map_btn: tk.Button = None
+        self.clear_markers_btn: tk.Button = None
 
         ###############################################################################
         ###############################################################################
@@ -76,7 +76,7 @@ class CommandScreen:
 
     def create_frames(self):
 
-        # grid_row/column configure ensures row or column fills avaiable space with equal weight
+        # grid_row/column configure ensures row or column fills available space with equal weight
         self.command_tab.grid_rowconfigure(0, weight=3)
         self.command_tab.grid_rowconfigure(1, weight=2)
         self.command_tab.grid_columnconfigure(0, weight=1)
@@ -116,60 +116,53 @@ class CommandScreen:
     def create_buttons(self):
 
         # Create command buttons
-        self.land_btn = self.BUttton_wrapper.create_button(
+        self.land_btn = self.button_wrapper.create_button(
             self.commands_frame, 20, text="Land", command=self.drone.land_drone
         )
-        self.BUttton_wrapper.add_to_window(
+        self.button_wrapper.add_to_window(
             self.land_btn, row=1, column=0, padx=10, pady=5, sticky="nsew"
         )
 
-        self.hover_btn = self.BUttton_wrapper.create_button(
+        self.hover_btn = self.button_wrapper.create_button(
             self.commands_frame, 20, text="Hover", command=self.drone.hover_drone
         )
-        self.BUttton_wrapper.add_to_window(
+        self.button_wrapper.add_to_window(
             self.hover_btn, row=2, column=0, padx=10, pady=5, sticky="nsew"
         )
 
         # create expand buttons
         self.create_expand_buttons()
 
-        # create map buttons button for user to add a new map
-        self.add_map_btn = self.BUttton_wrapper.create_button(
-            self.map_frame, 20, text="Add Map", command=self.Map.add_map
-        )
-        self.BUttton_wrapper.add_to_window(
-            self.add_map_btn, row=1, column=0, padx=5, pady=5
-        )
-
-        # button foruser to open a map that may be hidden
-        self.open_map_btn = self.BUttton_wrapper.create_button(
-            self.map_frame, 20, text="Open Map", command=self.Map.open_map
-        )
-        self.BUttton_wrapper.add_to_window(
-            self.open_map_btn, row=2, column=0, padx=5, pady=5
-        )
-
         # instead of clicking on a map a user can just upload a file of coordinates.
-        self.upload_plan_btn = self.BUttton_wrapper.create_button(
-            self.map_frame, 20, text="Upload Plan", command=self.Map.upload_plan
+        self.upload_plan_btn = self.button_wrapper.create_button(
+            self.map_frame, 20, text="Upload Plan", command=self.map.upload_plan
         )
-        self.BUttton_wrapper.add_to_window(
-            self.upload_plan_btn, row=0, column=0, padx=5, pady=5
+        self.button_wrapper.add_centered_button(
+            self.upload_plan_btn, y=70
+        )
+
+        # Create clear marks button
+        self.clear_markers_btn = self.button_wrapper.create_button(
+            self.map_frame, 20, text="Clear Path", command=self.map.clear_marks
+        )
+        self.button_wrapper.add_centered_button(
+            self.clear_markers_btn, y=110
         )
 
     def create_expand_buttons(self):
         # for loop add an expand button to each of the frames that we want to expand
         for frame_name, frame in zip(
-            ["video_frame", "lidar_frame"], [self.video_frame, self.lidar_frame]
+            ["video_frame", "lidar_frame", "map_frame"], [self.video_frame, self.lidar_frame, self.map_frame]
         ):
-            self.expand_btns[frame_name] = self.BUttton_wrapper.create_button(
+            self.expand_btns[frame_name] = self.button_wrapper.create_button(
                 frame, 20, text="Expand", command=lambda f=frame: self.expand_frame(f)
             )
-            self.BUttton_wrapper.add_to_window(
-                self.expand_btns[frame_name], row=0, column=0, padx=5, pady=5
+            self.button_wrapper.add_centered_button(
+                self.expand_btns[frame_name]
             )
 
     def expand_frame(self, frame):
+
         for other_frame in [
             self.video_frame,
             self.lidar_frame,
@@ -183,11 +176,11 @@ class CommandScreen:
             frame, row=0, column=0, rowspan=2, columnspan=2, sticky="nsew"
         )
 
-        # this make a new buton to go back to the original veiw. this button is added to the frame that was expand
-        reset_btn = self.BUttton_wrapper.create_button(
-            frame, 20, text="Reset", command=lambda: self.reset_frames(reset_btn)
+        # this make a new button to go back to the original view. this button is added to the frame that was expand
+        minimize_btn = self.button_wrapper.create_button(
+            frame, 20, text="Minimize", command=lambda: self.reset_frames(minimize_btn)
         )
-        self.BUttton_wrapper.add_to_window(reset_btn, row=1, column=0, padx=5, pady=5)
+        self.button_wrapper.add_centered_button(minimize_btn)
 
     def reset_frames(self, this_button):
         for frame in [
