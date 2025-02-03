@@ -14,8 +14,8 @@ from Utils.wrappers.WindowWrapper import WindowWrapper
 class Globals:
     def __init__(self):
         self.frame_wrapper = FrameWrapper()
-        self.Button_wrapper = ButtonWrapper()
-        self.Widndow_wrapper = WindowWrapper()
+        self.button_wrapper = ButtonWrapper()
+        self.window_wrapper = WindowWrapper()
 
-        self.drone = Drone(self.Widndow_wrapper)
-        self.Utils = Utils(self.Widndow_wrapper)
+        self.drone = Drone(self.window_wrapper)
+        self.Utils = Utils(self.window_wrapper)

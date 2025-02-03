@@ -1,4 +1,5 @@
 from tkinter import ttk
+import tkinter as tk
 
 
 class ButtonWrapper:
@@ -25,3 +26,12 @@ class ButtonWrapper:
         :param grid_options: Additional grid options (e.g., padx, pady, sticky).
         """
         button.grid(row=row, column=column, **grid_options)
+
+    def add_centered_button(self, button, y=30):
+        """
+        Add a button to the frame, centered within it.
+        :param button: The button to be placed.
+        :param y: screen units in y-direction to be placed.
+        """
+        button.place(relx=0.5, y=y, anchor=tk.CENTER)
+        return button
