@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from CommandScreen import CommandScreen
 from Utils.Globals import Globals
-from Utils.Log import LoggingWindow
+from LogWindow import LoggingWindow
 
 
 class Initialize:
@@ -15,8 +15,8 @@ class Initialize:
         self.root = tk.Tk()
         self.notebook = ttk.Notebook(self.root)
 
-        self.Gobals = Globals()
-        self.command_tab = CommandScreen(self.notebook, self.Gobals)
+        self.globals = Globals()
+        self.command_tab = CommandScreen(self.notebook, self.globals)
         self.logs_tab = LoggingWindow(self.notebook)
 
         self.screen_width = self.root.winfo_screenwidth()
