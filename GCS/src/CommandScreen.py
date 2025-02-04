@@ -3,6 +3,8 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 from Map import Map
+from LogWindow import LoggingWindow
+from Drone import Drone
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -10,11 +12,12 @@ from Utils.Globals import Globals
 
 
 class CommandScreen:
-    def __init__(self, notebook, globals: Globals):
+    def __init__(self, notebook, globals: Globals, drone: Drone, logs: LoggingWindow):
         self.frame_wrapper = globals.frame_wrapper
         self.button_wrapper = globals.button_wrapper
         self.window_wrapper = globals.window_wrapper
-        self.drone = globals.drone
+        self.drone = drone
+        self.logs = logs
 
         self.command_tab = self.frame_wrapper.create_frame(
             window=notebook, name="Command Tab"
@@ -36,7 +39,7 @@ class CommandScreen:
 
         ###############################################################################
         ###############################################################################
-        # These variables are for the Commnd Frame
+        # These variables are for the Command Frame
 
         # configure the commands frame box
         self.commands_frame.grid_rowconfigure(0, weight=1)
@@ -69,7 +72,7 @@ class CommandScreen:
         ###############################################################################
         # These variables are for the Map Frame
 
-        self.map = Map(self.map_frame, globals)
+        self.map = Map(self.map_frame, globals, logs)
         self.upload_plan_btn: tk.Button = None
         self.clear_markers_btn: tk.Button = None
 
@@ -177,11 +180,16 @@ class CommandScreen:
 
         # this make a new button to go back to the original view. this button is added to the frame that was expand
         minimize_btn = self.button_wrapper.create_button(
-            frame, 20, text="Minimize", command=lambda: self.reset_frames(minimize_btn)
+            frame,
+            20,
+            text="Minimize",
+            command=lambda: self.minimize_frames(minimize_btn),
         )
         self.button_wrapper.add_centered_button(minimize_btn)
 
-    def reset_frames(self, this_button):
+        self.logs.addUserLog("User expanded a view in the command tab")
+
+    def minimize_frames(self, this_button):
         for frame in [
             self.video_frame,
             self.lidar_frame,
@@ -203,3 +211,5 @@ class CommandScreen:
         )
 
         this_button.destroy()  # button destorys itself when pressed
+
+        self.logs.addUserLog("User minimized a view in the command tab")

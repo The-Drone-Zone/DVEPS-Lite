@@ -4,36 +4,43 @@ from Utils.wrappers.WindowWrapper import WindowWrapper
 
 
 class Drone:
-    def __init__(self, WW):
+    def __init__(self, WW, logs):
         self.window_wrapper: WindowWrapper = WW
         self.altitude: int = 0
         self.speed: float = 0.0
         self.heading: int = 0
         self.drone_status: DRONE_STATE = DRONE_STATE.LANDED
+        self.logs = logs
 
         pass
 
     def command_drone(self, selected_option):
         if selected_option == "Takeoff":
-            print("Takeoff")  # TODO make a logs class so we can log user input
+            print("Takeoff")
+            self.logs.addUserLog("User selected the Takeoff command")
             self.takeoff_drone()
         elif selected_option == "Set Speed":
-            print("Set Speed")  # TODO make a logs class so we can log user input
+            print("Set Speed")
+            self.logs.addUserLog("User selected the Set Speed command")
             self.set_speed()
         elif selected_option == "Set Altitude":
-            print("Set Altitude")  # TODO make a logs class so we can log user input
+            print("Set Altitude")
+            self.logs.addUserLog("User selected the Set Altitude command")
             self.set_altitude()
         elif selected_option == "Set Heading":
-            print("Set Heading")  # TODO make a logs class so we can log user input
+            print("Set Heading")
+            self.logs.addUserLog("User selected the Set Heading command")
             self.set_heading()
 
     def land_drone(self):
         # TODO hook up drone and sim
-        print("Landing Drone")  # TODO make a logs class so we can log user input
+        print("Landing Drone")
+        self.logs.addUserLog("User selected the Land Drone command")
 
     def hover_drone(self):
         # TODO Hook up drone and sim
-        print("Hovering Drone")  # TODO make a logs class so we can log user input
+        print("Hovering Drone")
+        self.logs.addUserLog("User selected the Hover Drone command")
 
     # drone is landed and we take off to a certain height
     def takeoff_drone(self):
