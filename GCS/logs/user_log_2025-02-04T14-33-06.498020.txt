@@ -1,0 +1,12 @@
+User switched to the Command tab
+User expanded a view in the command tab
+User minimized a view in the command tab
+User expanded a view in the command tab
+User minimized a view in the command tab
+User added a marker on the map at: 32.232290244942696, -110.95336052513123
+User added a marker on the map at: 32.23146437575885, -110.95235201454163
+User removed all marks on the map
+User selected the Land Drone command
+User selected the Hover Drone command
+User switched to the Logs tab
+User saved Drone Logs at: logs\drone_log_2025-02-04T14-32-59.662408.txt

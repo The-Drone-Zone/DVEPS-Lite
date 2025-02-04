@@ -10,6 +10,7 @@ from LogWindow import LoggingWindow
 from CommandScreen import CommandScreen
 from Utils.Globals import Globals
 
+
 class Initialize:
     def __init__(self):
         self.root = tk.Tk()
@@ -18,7 +19,9 @@ class Initialize:
         self.globals = Globals()
         self.logs_tab = LoggingWindow(self.notebook, self.globals)
         self.drone = Drone(self.globals.window_wrapper, self.logs_tab)
-        self.command_tab = CommandScreen(self.notebook, self.globals, self.drone, self.logs_tab)
+        self.command_tab = CommandScreen(
+            self.notebook, self.globals, self.drone, self.logs_tab
+        )
 
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()
@@ -31,8 +34,9 @@ class Initialize:
         self.notebook.pack(expand=True, fill="both")
         self.notebook.add(self.command_tab.command_tab, text="Command")
         self.notebook.add(self.logs_tab.logs_tab, text="Logs")
-        self.notebook.bind("<<NotebookTabChanged>>", self.tab_selected)  # TODO DELETE LATER
-
+        self.notebook.bind(
+            "<<NotebookTabChanged>>", self.tab_selected
+        )  # TODO DELETE LATER
 
     def tab_selected(self, event):  # TODO DELETE LATER
         notebook = event.widget

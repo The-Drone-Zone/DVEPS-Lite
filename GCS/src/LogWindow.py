@@ -2,6 +2,9 @@ from tkinter import Scrollbar
 from tkinter import Text
 import tkinter as tk
 from Utils.Globals import Globals
+from Utils.Utils import get_root_dir
+from datetime import datetime
+import os
 
 
 class LoggingWindow:
@@ -35,20 +38,39 @@ class LoggingWindow:
         )
 
         # Add Title
-        title = tk.Label(drone_logs_frame, text="Drone Logs", justify=tk.CENTER, bg="lightblue", font=("Helvetica", 20, "bold"))
+        title = tk.Label(
+            drone_logs_frame,
+            text="Drone Logs",
+            justify=tk.CENTER,
+            bg="lightblue",
+            font=("Helvetica", 20, "bold"),
+        )
         title.pack()
+
+        # Save Log to File Button
+        save_btn = tk.Button(
+            drone_logs_frame,
+            text="Save Drone Logs",
+            font=("Helvetica", 12),
+            command=self.saveDroneLog,
+        )
+        self.button_wrapper.add_to_window(save_btn, pady=3)
 
         # Setup Scrollbar
         drone_logs_scrollbar = Scrollbar(drone_logs_frame)
-        drone_logs_scrollbar.pack(side = "right", fill = "y")
+        drone_logs_scrollbar.pack(side="right", fill="y")
 
         # Setup text widget
-        drone_logs_text = Text(drone_logs_frame, yscrollcommand = drone_logs_scrollbar.set, padx=50, pady=10)
-        
+        drone_logs_text = Text(
+            drone_logs_frame, yscrollcommand=drone_logs_scrollbar.set, padx=50, pady=10
+        )
+
         # Insert text into the text widget (DELETE ONCE REAL DATA)
         for i in range(40):
-            drone_logs_text.insert(tk.END, "DRONE TEXT DRONE COMMAND DRONES STUFF LOGS TELEM RANDOOOO\n")
-        drone_logs_text.see('end')
+            drone_logs_text.insert(
+                tk.END, "DRONE TEXT DRONE COMMAND DRONES STUFF LOGS TELEM RANDOOOO\n"
+            )
+        drone_logs_text.see("end")
 
         # Disable Text Editing
         drone_logs_text.config(state="disabled")
@@ -68,15 +90,32 @@ class LoggingWindow:
         )
 
         # Add Title
-        title = tk.Label(user_logs_frame, text="User Logs", justify=tk.CENTER, bg="yellow", font=("Helvetica", 20, "bold"))
+        title = tk.Label(
+            user_logs_frame,
+            text="User Logs",
+            justify=tk.CENTER,
+            bg="yellow",
+            font=("Helvetica", 20, "bold"),
+        )
         title.pack()
+
+        # Save Log to File Button
+        save_btn = tk.Button(
+            user_logs_frame,
+            text="Save User Logs",
+            font=("Helvetica", 12),
+            command=self.saveUserLog,
+        )
+        self.button_wrapper.add_to_window(save_btn, pady=3)
 
         # Setup Scrollbar
         user_logs_scrollbar = Scrollbar(user_logs_frame)
-        user_logs_scrollbar.pack(side = "right", fill = "y")
+        user_logs_scrollbar.pack(side="right", fill="y")
 
         # Setup text widget
-        user_logs_text = Text(user_logs_frame, yscrollcommand = user_logs_scrollbar.set, padx=50, pady=10)
+        user_logs_text = Text(
+            user_logs_frame, yscrollcommand=user_logs_scrollbar.set, padx=50, pady=10
+        )
 
         # Disable Text Editing
         user_logs_text.config(state="disabled")
@@ -85,13 +124,13 @@ class LoggingWindow:
         user_logs_text.pack(side=tk.LEFT, fill="both", expand=True)
 
         return user_logs_text
-    
+
     def addDroneLog(self, text):
         # Enable Text Editing
         self.drone_logs_text.config(state="normal")
         # Insert New Log Text
         self.drone_logs_text.insert(tk.END, text + "\n")
-        self.drone_logs_text.see('end')
+        self.drone_logs_text.see("end")
         # Disable Text Editing
         self.drone_logs_text.config(state="disabled")
 
@@ -100,6 +139,36 @@ class LoggingWindow:
         self.user_logs_text.config(state="normal")
         # Insert New Log Text
         self.user_logs_text.insert(tk.END, text + "\n")
-        self.user_logs_text.see('end')
+        self.user_logs_text.see("end")
         # Disable Text Editing
         self.user_logs_text.config(state="disabled")
+
+    def saveDroneLog(self):
+        date = datetime.now()
+        rootPath = (
+            "logs\\drone_log_" + datetime.isoformat(date).replace(":", "-") + ".txt"
+        )
+        filePath = os.path.join(get_root_dir(), rootPath)
+
+        # Get logs as string from text widget
+        text = self.drone_logs_text.get("1.0", "end-1c")
+
+        with open(filePath, "w") as file:
+            file.write(text)
+
+        self.addUserLog("User saved Drone Logs at: " + rootPath)
+
+    def saveUserLog(self):
+        date = datetime.now()
+        rootPath = (
+            "logs\\user_log_" + datetime.isoformat(date).replace(":", "-") + ".txt"
+        )
+        filePath = os.path.join(get_root_dir(), rootPath)
+
+        # Get logs as string from text widget
+        text = self.user_logs_text.get("1.0", "end-1c")
+
+        with open(filePath, "w") as file:
+            file.write(text)
+
+        self.addUserLog("User saved User Logs at: " + rootPath)

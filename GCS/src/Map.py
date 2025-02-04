@@ -60,8 +60,14 @@ class Map:
         self.markers.append(new_marker)
         self.marker_positions.append(new_marker.position)
         # set a path
-        self.path = self.map_widget.set_path(self.marker_positions)
-        self.logs.addUserLog("User added a marker on the map at: " + str(coords[0]) + ", " + str(coords[1]))
+        if len(self.markers) > 1:
+            self.path = self.map_widget.set_path(self.marker_positions)
+        self.logs.addUserLog(
+            "User added a marker on the map at: "
+            + str(coords[0])
+            + ", "
+            + str(coords[1])
+        )
 
     def upload_plan(self):
         file_path = self.window_wrapper.display_input_box(

@@ -20,3 +20,11 @@ class Utils:
             )
 
         return file_path
+
+
+def get_root_dir():
+    script_directory = os.path.dirname(
+        os.path.abspath(__file__)
+    )  # Current script directory
+    parent_directory = os.path.dirname(script_directory)  # Move one folder back
+    return parent_directory

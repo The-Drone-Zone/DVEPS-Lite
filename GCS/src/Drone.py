@@ -2,6 +2,7 @@
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
 
+
 class Drone:
     def __init__(self, WW, logs):
         self.window_wrapper: WindowWrapper = WW
@@ -15,11 +16,11 @@ class Drone:
 
     def command_drone(self, selected_option):
         if selected_option == "Takeoff":
-            print("Takeoff") 
+            print("Takeoff")
             self.logs.addUserLog("User selected the Takeoff command")
             self.takeoff_drone()
         elif selected_option == "Set Speed":
-            print("Set Speed") 
+            print("Set Speed")
             self.logs.addUserLog("User selected the Set Speed command")
             self.set_speed()
         elif selected_option == "Set Altitude":

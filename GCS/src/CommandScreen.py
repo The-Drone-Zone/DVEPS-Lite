@@ -180,7 +180,10 @@ class CommandScreen:
 
         # this make a new button to go back to the original view. this button is added to the frame that was expand
         minimize_btn = self.button_wrapper.create_button(
-            frame, 20, text="Minimize", command=lambda: self.minimize_frames(minimize_btn)
+            frame,
+            20,
+            text="Minimize",
+            command=lambda: self.minimize_frames(minimize_btn),
         )
         self.button_wrapper.add_centered_button(minimize_btn)
 
