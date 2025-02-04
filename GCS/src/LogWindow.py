@@ -28,18 +28,22 @@ class LoggingWindow:
     def createDroneLogs(self):
         # Create Drone logs frame
         drone_logs_frame = self.frame_wrapper.create_frame(
-            window=self.logs_tab, name="Drone Logs", bg="lightblue"
+            window=self.logs_tab, name="Drone Logs", bg="lightblue", padx=50
         )
         self.frame_wrapper.add_to_window(
             drone_logs_frame, row=0, column=0, sticky="nsew"
         )
+
+        # Add Title
+        title = tk.Label(drone_logs_frame, text="Drone Logs", justify=tk.CENTER, bg="lightblue", font=("Helvetica", 20, "bold"))
+        title.pack()
 
         # Setup Scrollbar
         drone_logs_scrollbar = Scrollbar(drone_logs_frame)
         drone_logs_scrollbar.pack(side = "right", fill = "y")
 
         # Setup text widget
-        drone_logs_text = Text(drone_logs_frame, yscrollcommand = drone_logs_scrollbar.set)
+        drone_logs_text = Text(drone_logs_frame, yscrollcommand = drone_logs_scrollbar.set, padx=50, pady=10)
         
         # Insert text into the text widget (DELETE ONCE REAL DATA)
         for i in range(40):
@@ -57,18 +61,22 @@ class LoggingWindow:
     def createUserLogs(self):
         # Create User logs frame
         user_logs_frame = self.frame_wrapper.create_frame(
-            window=self.logs_tab, name="User Logs", bg="yellow"
+            window=self.logs_tab, name="User Logs", bg="yellow", padx=50
         )
         self.frame_wrapper.add_to_window(
             user_logs_frame, row=1, column=0, sticky="nsew"
         )
+
+        # Add Title
+        title = tk.Label(user_logs_frame, text="User Logs", justify=tk.CENTER, bg="yellow", font=("Helvetica", 20, "bold"))
+        title.pack()
 
         # Setup Scrollbar
         user_logs_scrollbar = Scrollbar(user_logs_frame)
         user_logs_scrollbar.pack(side = "right", fill = "y")
 
         # Setup text widget
-        user_logs_text = Text(user_logs_frame, yscrollcommand = user_logs_scrollbar.set)
+        user_logs_text = Text(user_logs_frame, yscrollcommand = user_logs_scrollbar.set, padx=50, pady=10)
 
         # Disable Text Editing
         user_logs_text.config(state="disabled")
