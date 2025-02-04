@@ -2,13 +2,15 @@ import tkinter as tk
 from tkintermapview import TkinterMapView
 import os
 from Utils.connected import is_connected
+from LogWindow import LoggingWindow
 
 
 class Map:
-    def __init__(self, map_frame, globals):
+    def __init__(self, map_frame, globals, logs: LoggingWindow):
         # Initialize global variables
         self.globals = globals
         self.window_wrapper = globals.window_wrapper
+        self.logs = logs
 
         # Initialize map widget
         if is_connected():
@@ -59,6 +61,7 @@ class Map:
         self.marker_positions.append(new_marker.position)
         # set a path
         self.path = self.map_widget.set_path(self.marker_positions)
+        self.logs.addUserLog("User added a marker on the map at: " + str(coords[0]) + ", " + str(coords[1]))
 
     def upload_plan(self):
         file_path = self.window_wrapper.display_input_box(
@@ -72,6 +75,7 @@ class Map:
             content = file.read()
 
         print(content)
+        self.logs.addUserLog("User uploaded a custom flight path path")
 
     def clear_marks(self):
         for marker in self.markers:
@@ -81,3 +85,5 @@ class Map:
         self.markers = []
         self.marker_positions = []
         self.path = None
+
+        self.logs.addUserLog("User removed all marks on the map")
