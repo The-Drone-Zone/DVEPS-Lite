@@ -3,14 +3,16 @@ from tkintermapview import TkinterMapView
 import os
 from Utils.connected import is_connected
 from LogWindow import LoggingWindow
+from Settings import Settings
 
 
 class Map:
-    def __init__(self, map_frame, globals, logs: LoggingWindow):
+    def __init__(self, map_frame, globals, logs: LoggingWindow, settings: Settings):
         # Initialize global variables
         self.globals = globals
         self.window_wrapper = globals.window_wrapper
         self.logs = logs
+        self.settings = settings
 
         # Initialize map widget
         if is_connected():
@@ -39,8 +41,8 @@ class Map:
 
         # Set Starting Location
         self.map_widget.set_position(
-            32.2319, -110.9535
-        )  # University of Arizona, Tucson, AZ
+            self.settings.map_start_position[0], self.settings.map_start_position[1]
+        )
 
         # Track markers
         self.markers = []

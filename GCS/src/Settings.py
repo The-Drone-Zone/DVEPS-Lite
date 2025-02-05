@@ -4,16 +4,31 @@ from LogWindow import LoggingWindow
 from Utils.connected import is_connected
 from tkintermapview import TkinterMapView
 import os
+from Utils.loadOfflineTiles import loadOfflineTiles
+import threading
+import yaml
+
 
 class Settings:
     def __init__(self, notebook, globals: Globals, logs: LoggingWindow):
+        # Get Settings YAML file Path
+        script_directory = os.path.dirname(
+            os.path.abspath(__file__)
+        )  # Current script directory
+        parent_directory = os.path.dirname(script_directory)  # Move one folder back
+        self.settings_file = os.path.join(parent_directory, "settings.yml")
+
+        # Load Data from YAML
+        with open(self.settings_file, "r") as file:
+            config = yaml.safe_load(file)
+
         ## Default Settings ##
-        self.flight_height = 1
-        self.flight_speed = 5
-        self.map_start_position = (32.2319, -110.9535) # U of A Mall
-        # For offline map download
-        self.top_left_map = (32.2339879, -110.9566328)
-        self.bottom_right_map = (32.2308002, -110.9502170)
+        self.flight_height = config["flight_height"]
+        self.flight_speed = config["flight_speed"]
+        self.map_start_position = (
+            config["map_start_position"]["latitude"],
+            config["map_start_position"]["longitude"],
+        )
 
         # Initialize globals
         self.frame_wrapper = globals.frame_wrapper
@@ -39,7 +54,7 @@ class Settings:
             self.settings_tab,
             text="Settings",
             justify=tk.CENTER,
-            font=("Helvetica", 30, "bold")
+            font=("Helvetica", 30, "bold"),
         )
         title.pack(pady=10)
 
@@ -50,30 +65,49 @@ class Settings:
 
     def flightHeight(self):
         # Create Frame for this section
-        height_frame = self.frame_wrapper.create_frame(window=self.settings_tab, name="Flight Height")
+        height_frame = self.frame_wrapper.create_frame(
+            window=self.settings_tab, name="Flight Height", bg="lightblue"
+        )
         height_frame.pack(pady=10)
         # Create Label
-        height_label = tk.Label(height_frame, text="Flight Height", justify=tk.CENTER, font=("Helvetica", 15))
+        height_label = tk.Label(
+            height_frame,
+            text="Flight Height",
+            justify=tk.CENTER,
+            font=("Helvetica", 15),
+            bg="lightblue",
+        )
         height_label.pack()
         # Create User Input
         height = tk.StringVar()
         height.set(str(self.flight_height))
-        height_input = tk.Entry(height_frame, textvariable=height, font=("Helvetica", 15))
+        height_input = tk.Entry(
+            height_frame, textvariable=height, font=("Helvetica", 15)
+        )
         height_input.pack()
         # Create Save Button
-        save_btn = tk.Button(height_frame, 
+        save_btn = tk.Button(
+            height_frame,
             text="Save",
             font=("Helvetica", 12),
-            command=lambda: self.updateFlightHeight(height)
+            command=lambda: self.updateFlightHeight(height),
         )
-        save_btn.pack()
+        save_btn.pack(pady=5)
 
     def flightSpeed(self):
         # Create Frame for this section
-        speed_frame = self.frame_wrapper.create_frame(window=self.settings_tab, name="Flight Speed")
+        speed_frame = self.frame_wrapper.create_frame(
+            window=self.settings_tab, name="Flight Speed", bg="lightblue"
+        )
         speed_frame.pack(pady=10)
         # Create Label
-        speed_label = tk.Label(speed_frame, text="Flight Speed", justify=tk.CENTER, font=("Helvetica", 15))
+        speed_label = tk.Label(
+            speed_frame,
+            text="Flight Speed",
+            justify=tk.CENTER,
+            font=("Helvetica", 15),
+            bg="lightblue",
+        )
         speed_label.pack()
         # Create User Input
         speed = tk.StringVar()
@@ -81,19 +115,28 @@ class Settings:
         speed_input = tk.Entry(speed_frame, textvariable=speed, font=("Helvetica", 15))
         speed_input.pack()
         # Create Save Button
-        save_btn = tk.Button(speed_frame, 
+        save_btn = tk.Button(
+            speed_frame,
             text="Save",
             font=("Helvetica", 12),
-            command=lambda: self.updateFlightSpeed(speed)
+            command=lambda: self.updateFlightSpeed(speed),
         )
-        save_btn.pack()
+        save_btn.pack(pady=5)
 
     def mapPosition(self):
         # Create Frame for this section
-        position_frame = self.frame_wrapper.create_frame(window=self.settings_tab, name="Map Position Setting")
+        position_frame = self.frame_wrapper.create_frame(
+            window=self.settings_tab, name="Map Position Setting", bg="lightblue"
+        )
         position_frame.pack(pady=10)
         # Create Label
-        position_label = tk.Label(position_frame, text="Starting Map Position", justify=tk.CENTER, font=("Helvetica", 15))
+        position_label = tk.Label(
+            position_frame,
+            text="Starting Map Position",
+            justify=tk.CENTER,
+            font=("Helvetica", 15),
+            bg="lightblue",
+        )
         position_label.pack()
 
         # Initialize map widget
@@ -131,55 +174,72 @@ class Settings:
         )
 
         # Create Save Button
-        save_btn = tk.Button(position_frame, 
+        save_btn = tk.Button(
+            position_frame,
             text="Save",
             font=("Helvetica", 12),
-            command=self.updateMapPosition
+            command=self.updateMapPosition,
         )
-        save_btn.pack()
+        save_btn.pack(pady=5)
 
     def offlineMap(self):
         # Create Frame for this section
-        offline_map_frame = self.frame_wrapper.create_frame(window=self.settings_tab, name="Offline Map Setting")
+        offline_map_frame = self.frame_wrapper.create_frame(
+            window=self.settings_tab, name="Offline Map Setting", bg="lightblue"
+        )
         offline_map_frame.pack(pady=10)
         # Create Label
-        height_label = tk.Label(offline_map_frame, text="Offline Map Area", justify=tk.CENTER, font=("Helvetica", 15))
+        height_label = tk.Label(
+            offline_map_frame,
+            text="Download Offline Map",
+            justify=tk.CENTER,
+            font=("Helvetica", 15),
+            bg="lightblue",
+        )
         height_label.pack()
 
         # Initialize map widget
         if is_connected():
             print("Using Map with Internet for Map Position Settings")
             self.map_widget2 = TkinterMapView(offline_map_frame, corner_radius=0)
+            # Place in frame
+            self.map_widget2.pack()
+
+            # Set Starting Location
+            self.map_widget2.set_position(
+                self.map_start_position[0], self.map_start_position[1]
+            )
+
+            # Add Create Marker Event
+            self.map_widget2.add_right_click_menu_command(
+                label="Add Marker", command=self.add_marker_event2, pass_coords=True
+            )
+
+            # Label to display download progress
+            progress = tk.Label(offline_map_frame, text="", bg="lightblue")
+
+            # Create Save Button
+            save_btn = tk.Button(
+                offline_map_frame,
+                text="Save",
+                font=("Helvetica", 12),
+                command=lambda: self.updateOfflineMap(progress),
+            )
+
+            save_btn.pack(pady=5)
+            progress.pack()
         else:
             text = "You must be connected to the internet to use this feature"
-            height_label = tk.Label(offline_map_frame, text=text, justify=tk.CENTER, font=("Helvetica", 15))
+            height_label = tk.Label(
+                offline_map_frame, text=text, justify=tk.CENTER, font=("Helvetica", 15)
+            )
             height_label.pack()
-
-        # Place in frame
-        self.map_widget2.pack()
-
-        # Set Starting Location
-        self.map_widget2.set_position(
-            self.map_start_position[0], self.map_start_position[1]
-        )
-
-        # Add Create Marker Event
-        self.map_widget2.add_right_click_menu_command(
-            label="Add Marker", command=self.add_marker_event2, pass_coords=True
-        )
-
-        # Create Save Button
-        save_btn = tk.Button(offline_map_frame, 
-            text="Save",
-            font=("Helvetica", 12),
-            command=self.updateOfflineMap
-        )
-        save_btn.pack()
 
     def updateFlightHeight(self, height: tk.StringVar):
         logText = ""
         try:
             self.flight_height = float(height.get())
+            self.save_settings()
             logText = f"User updated flight height to: {self.flight_height} m"
         except Exception:
             logText = f"Error: User attempted flight height to non decimal(float) value: {height.get()}"
@@ -191,8 +251,9 @@ class Settings:
     def updateFlightSpeed(self, speed: tk.StringVar):
         logText = ""
         try:
-            self.flight_height = float(speed.get())
-            logText = f"User updated flight speed to: {self.flight_height} m"
+            self.flight_speed = float(speed.get())
+            self.save_settings()
+            logText = f"User updated flight speed to: {self.flight_speed} m"
         except Exception:
             logText = f"Error: User attempted flight speed to non decimal(float) value: {speed.get()}"
             speed.set(str(self.flight_speed))
@@ -204,33 +265,53 @@ class Settings:
         logText = ""
         if self.marker != None:
             self.map_start_position = self.marker.position
-            logText = f"User updated starting map position to: {self.map_start_position}"
+            self.save_settings()
+            logText = (
+                f"User updated starting map position to: {self.map_start_position}"
+            )
         else:
             logText = f"Error: User attempted to set starting map position to None"
 
         print(logText)
         self.logs.addUserLog(logText)
 
-    def updateOfflineMap(self):
-        logText = ""
-        if len(self.markers) == 2:
-            self.top_left_map = self.markers[0].position
-            self.bottom_right_map = self.markers[1].position
-            logText = f"User began downloading new offline map with corners at {self.top_left_map} and {self.bottom_right_map}"
-            ## ADD DOWNLOAD STUFF HERE ##
-        else:
-            logText = f"Error: User attempted to download new offline map using invalid coordinates"
+    def updateOfflineMap(self, progress: tk.Label):
+        def download_task():
+            logText = ""
+            if len(self.markers) == 2:
+                top_left_map = self.markers[0].position
+                bottom_right_map = self.markers[1].position
+                logText = f"User began downloading new offline map with corners at {top_left_map} and {bottom_right_map}"
+                print(logText)
+                self.logs.addUserLog(logText)
 
-        print(logText)
-        self.logs.addUserLog(logText)
+                # Update the GUI safely
+                progress.after(0, lambda: progress.config(text="Downloading..."))
+
+                # Simulate the downloading process
+                loadOfflineTiles(top_left_map, bottom_right_map)
+
+                logText = f"User completed download of offline map with corners at {top_left_map} and {bottom_right_map}"
+            else:
+                logText = f"Error: User attempted to download new offline map using invalid coordinates"
+
+            print(logText)
+            self.logs.addUserLog(logText)
+
+            # Update the GUI safely after the download is complete
+            progress.after(0, lambda: progress.config(text="Download Complete"))
+
+        # Run the download task in a separate thread
+        thread = threading.Thread(target=download_task, daemon=True)
+        thread.start()
 
     def add_marker_event1(self, coords):
         print("Added marker in settings:", coords)
+        # Remove previously placed marker
         if self.marker != None:
             self.marker.delete()
-        self.marker = self.map_widget1.set_marker(
-            coords[0], coords[1]
-        )
+        # Place new marker
+        self.marker = self.map_widget1.set_marker(coords[0], coords[1])
         self.logs.addUserLog(
             "User added a marker on the map in the starting map position settings at: "
             + str(coords[0])
@@ -240,12 +321,12 @@ class Settings:
 
     def add_marker_event2(self, coords):
         print("Added marker in settings:", coords)
+        # Remove marker if 2 or more are already placed
         while len(self.markers) > 1:
             self.markers[0].delete()
             self.markers.pop(0)
-        new_marker = self.map_widget2.set_marker(
-            coords[0], coords[1]
-        )
+        # Place new marker
+        new_marker = self.map_widget2.set_marker(coords[0], coords[1])
         self.markers.append(new_marker)
         self.logs.addUserLog(
             "User added a marker on the map in the offline map settings at: "
@@ -253,3 +334,16 @@ class Settings:
             + ", "
             + str(coords[1])
         )
+
+    def save_settings(self):
+        data = {
+            "flight_height": self.flight_height,
+            "flight_speed": self.flight_speed,
+            "map_start_position": {
+                "latitude": self.map_start_position[0],
+                "longitude": self.map_start_position[1],
+            },
+        }
+
+        with open(self.settings_file, "w") as file:
+            yaml.dump(data, file)

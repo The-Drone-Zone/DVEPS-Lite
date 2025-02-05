@@ -22,7 +22,7 @@ class Initialize:
         self.settings = Settings(self.notebook, self.globals, self.logs_tab)
         self.drone = Drone(self.globals.window_wrapper, self.logs_tab)
         self.command_tab = CommandScreen(
-            self.notebook, self.globals, self.drone, self.logs_tab
+            self.notebook, self.globals, self.drone, self.logs_tab, self.settings
         )
 
         self.screen_width = self.root.winfo_screenwidth()
