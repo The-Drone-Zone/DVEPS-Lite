@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from Drone import Drone
 from LogWindow import LoggingWindow
 from CommandScreen import CommandScreen
+from Settings import Settings
 from Utils.Globals import Globals
 
 
@@ -18,6 +19,7 @@ class Initialize:
 
         self.globals = Globals()
         self.logs_tab = LoggingWindow(self.notebook, self.globals)
+        self.settings = Settings(self.notebook, self.globals, self.logs_tab)
         self.drone = Drone(self.globals.window_wrapper, self.logs_tab)
         self.command_tab = CommandScreen(
             self.notebook, self.globals, self.drone, self.logs_tab
@@ -34,6 +36,7 @@ class Initialize:
         self.notebook.pack(expand=True, fill="both")
         self.notebook.add(self.command_tab.command_tab, text="Command")
         self.notebook.add(self.logs_tab.logs_tab, text="Logs")
+        self.notebook.add(self.settings.settings_tab, text="Settings")
         self.notebook.bind(
             "<<NotebookTabChanged>>", self.tab_selected
         )  # TODO DELETE LATER
