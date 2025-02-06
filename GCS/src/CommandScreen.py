@@ -1,11 +1,9 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk
 from Map import Map
 from LogWindow import LoggingWindow
 from Drone import Drone
-from Settings import Settings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -19,7 +17,7 @@ class CommandScreen:
         globals: Globals,
         drone: Drone,
         logs: LoggingWindow,
-        settings: Settings,
+        settings,
     ):
         self.frame_wrapper = globals.frame_wrapper
         self.button_wrapper = globals.button_wrapper
@@ -81,7 +79,10 @@ class CommandScreen:
         ###############################################################################
         # These variables are for the Map Frame
 
-        self.map = Map(self.map_frame, globals, logs, settings)
+        # Create Map
+        self.map = Map(self.map_frame, "Commands Map", globals, logs, settings)
+        # Set widget location and size
+        self.map.map_widget.place(relx=0, rely=0, relwidth=1, relheight=1)
         self.upload_plan_btn: tk.Button = None
         self.clear_markers_btn: tk.Button = None
 

@@ -8,6 +8,7 @@ from Utils.loadOfflineTiles import loadOfflineTiles
 import threading
 import yaml
 from Utils.Utils import get_root_dir
+from Map import Map
 
 
 class Settings:
@@ -28,6 +29,7 @@ class Settings:
         )
 
         # Initialize globals
+        self.globals = globals
         self.frame_wrapper = globals.frame_wrapper
         self.button_wrapper = globals.button_wrapper
         self.window_wrapper = globals.window_wrapper
@@ -35,11 +37,9 @@ class Settings:
         # Setup Logs
         self.logs = logs
 
-        # Setup for map widgets
-        self.map_widget1 = None
-        self.marker = None
-        self.map_widget2 = None
-        self.markers = []
+        # Setup Maps
+        self.position_map = None
+        self.offline_map = None
 
         # Create main frame
         self.settings_tab = self.frame_wrapper.create_frame(
@@ -136,39 +136,11 @@ class Settings:
         )
         position_label.pack()
 
-        # Initialize map widget
-        if is_connected():
-            self.logs.addUserLog("Using Map with Internet for Map Position Settings")
-            self.map_widget1 = TkinterMapView(position_frame, corner_radius=0)
-        else:
-            self.logs.addUserLog("Using Offline Map for Map Position Settings")
-            # Get script directory
-            database_path = os.path.join(get_root_dir(), "offline_tiles.db")
-            self.map_widget1 = TkinterMapView(
-                position_frame,
-                corner_radius=0,
-                use_database_only=True,
-                max_zoom=22,
-                database_path=database_path,
-            )
+        # Initialize Map
+        self.position_map = Map(position_frame, "Starting Position Settings Map", self.globals, self.logs, self)
 
         # Place in frame
-        self.map_widget1.pack()
-
-        # Set Starting Location
-        self.map_widget1.set_position(
-            self.map_start_position[0], self.map_start_position[1]
-        )
-
-        # Add Create Marker Event
-        # self.map_widget1.add_right_click_menu_command(
-        #     label="Add Marker", command=lambda: self.add_marker_event(coords, id=1), pass_coords=True
-        # )
-        self.map_widget1.add_right_click_menu_command(
-            label="Add Marker",
-            command=lambda coords: self.add_marker_event(coords, map_id=1),
-            pass_coords=True
-        )
+        self.position_map.map_widget.pack()
 
         # Create Save Button
         save_btn = tk.Button(
@@ -195,22 +167,10 @@ class Settings:
         )
         height_label.pack()
 
-        # Initialize map widget
         if is_connected():
-            self.logs.addUserLog("Using Map with Internet for Map Position Settings")
-            self.map_widget2 = TkinterMapView(offline_map_frame, corner_radius=0)
-            # Place in frame
-            self.map_widget2.pack()
-
-            # Set Starting Location
-            self.map_widget2.set_position(
-                self.map_start_position[0], self.map_start_position[1]
-            )
-
-            # Add Create Marker Event
-            self.map_widget2.add_right_click_menu_command(
-                label="Add Marker", command=lambda coords: self.add_marker_event(coords, map_id=2), pass_coords=True
-            )
+            # Initialize map widget
+            self.offline_map = Map(offline_map_frame, "Download Offline Tiles Map", self.globals, self.logs, self)
+            self.offline_map.map_widget.pack()
 
             # Label to display download progress
             progress = tk.Label(offline_map_frame, text="", bg="lightblue")
@@ -258,9 +218,10 @@ class Settings:
 
     def updateMapPosition(self):
         logText = ""
-        if self.marker != None:
-            self.map_start_position = self.marker.position
+        if len(self.position_map.markers) > 0:
+            self.map_start_position = self.position_map.markers[0].position
             self.save_settings()
+            self.position_map.clear_marks()
             logText = (
                 f"User updated starting map position to: {self.map_start_position}"
             )
@@ -272,9 +233,9 @@ class Settings:
     def updateOfflineMap(self, progress: tk.Label):
         def download_task():
             logText = ""
-            if len(self.markers) == 2:
-                top_left_map = self.markers[0].position
-                bottom_right_map = self.markers[1].position
+            if len(self.offline_map.markers) == 2:
+                top_left_map = self.offline_map.markers[0].position
+                bottom_right_map = self.offline_map.markers[1].position
                 logText = f"User began downloading new offline map with corners at {top_left_map} and {bottom_right_map}"
                 self.logs.addUserLog(logText)
 
@@ -298,29 +259,6 @@ class Settings:
         # Run the download task in a separate thread
         thread = threading.Thread(target=download_task, daemon=True)
         thread.start()
-
-    def add_marker_event(self, coords, map_id):
-        if map_id == 1:
-            # Remove previously placed marker
-            if self.marker != None:
-                self.marker.delete()
-            # Place new marker
-            self.marker = self.map_widget1.set_marker(coords[0], coords[1])
-        else: # id == 2
-            # Remove marker if 2 or more are already placed
-            while len(self.markers) > 1:
-                self.markers[0].delete()
-                self.markers.pop(0)
-            # Place new marker
-            new_marker = self.map_widget2.set_marker(coords[0], coords[1])
-            self.markers.append(new_marker)
-        # Add marker placement to log
-        self.logs.addUserLog(
-            "User added a marker on the map in the offline map settings at: "
-            + str(coords[0])
-            + ", "
-            + str(coords[1])
-        )
 
     def save_settings(self):
         data = {
