@@ -93,7 +93,9 @@ class Map:
         with open(file_path, "r") as file:
             content = file.read()
 
-        self.logs.addUserLog(f"{self.map_name}: User uploaded a custom flight path path")
+        self.logs.addUserLog(
+            f"{self.map_name}: User uploaded a custom flight path path"
+        )
 
     def clear_marks(self):
         for marker in self.markers:

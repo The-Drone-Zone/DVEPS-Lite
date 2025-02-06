@@ -83,7 +83,12 @@ class Settings:
         )
         height_input.pack()
         # Create Save Button
-        save_btn = self.button_wrapper.create_button(height_frame, 12, text="Save", command=lambda: self.updateFlightHeight(height))
+        save_btn = self.button_wrapper.create_button(
+            height_frame,
+            12,
+            text="Save",
+            command=lambda: self.updateFlightHeight(height),
+        )
         save_btn.pack(pady=5)
 
     def createFlightSpeedSection(self):
@@ -107,7 +112,9 @@ class Settings:
         speed_input = tk.Entry(speed_frame, textvariable=speed, font=("Helvetica", 15))
         speed_input.pack()
         # Create Save Button
-        save_btn = self.button_wrapper.create_button(speed_frame, 12, text="Save", command=lambda: self.updateFlightSpeed(speed))
+        save_btn = self.button_wrapper.create_button(
+            speed_frame, 12, text="Save", command=lambda: self.updateFlightSpeed(speed)
+        )
         save_btn.pack(pady=5)
 
     def createMapPositionSection(self):
@@ -127,13 +134,21 @@ class Settings:
         position_label.pack()
 
         # Initialize Map
-        self.position_map = Map(position_frame, "Starting Position Settings Map", self.globals, self.logs, self)
+        self.position_map = Map(
+            position_frame,
+            "Starting Position Settings Map",
+            self.globals,
+            self.logs,
+            self,
+        )
 
         # Place in frame
         self.position_map.map_widget.pack()
 
         # Create Save Button
-        save_btn = self.button_wrapper.create_button(position_frame, 12, text="Save", command=self.updateMapPosition)
+        save_btn = self.button_wrapper.create_button(
+            position_frame, 12, text="Save", command=self.updateMapPosition
+        )
         save_btn.pack(pady=5)
 
     def createOfflineMapSection(self):
@@ -154,14 +169,25 @@ class Settings:
 
         if is_connected():
             # Initialize map widget
-            self.offline_map = Map(offline_map_frame, "Download Offline Tiles Map", self.globals, self.logs, self)
+            self.offline_map = Map(
+                offline_map_frame,
+                "Download Offline Tiles Map",
+                self.globals,
+                self.logs,
+                self,
+            )
             self.offline_map.map_widget.pack()
 
             # Label to display download progress
             progress = tk.Label(offline_map_frame, text="", bg="lightblue")
 
             # Create Save Button
-            save_btn = self.button_wrapper.create_button(offline_map_frame, 12, text="Save", command=lambda: self.updateOfflineMap(progress))
+            save_btn = self.button_wrapper.create_button(
+                offline_map_frame,
+                12,
+                text="Save",
+                command=lambda: self.updateOfflineMap(progress),
+            )
 
             save_btn.pack(pady=5)
             progress.pack()

@@ -11,10 +11,11 @@ class ButtonWrapper:
         button = tk.Button(
             window,
             font=("Helvetica", text_size),
-            padding=(0,0), 
-            anchor="center", 
-            **kwargs)
-        
+            padding=(0, 0),
+            anchor="center",
+            **kwargs
+        )
+
         return button
 
     def add_to_window(self, button, row=0, column=0, **grid_options):

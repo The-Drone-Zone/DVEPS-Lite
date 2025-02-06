@@ -25,7 +25,7 @@ def loadOfflineTiles(
 
     # Get DB directory
     database_path = os.path.join(get_root_dir(), "offline_tiles.db")
-    
+
     # create OfflineLoader instance
     loader = tkintermapview.OfflineLoader(path=database_path)
     # loader = tkintermapview.OfflineLoader(path=database_path,

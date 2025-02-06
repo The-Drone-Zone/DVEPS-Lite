@@ -48,7 +48,9 @@ class LoggingWindow:
         title.pack()
 
         # Save Log to File Button
-        save_btn = self.button_wrapper.create_button(drone_logs_frame, 12, text="Save Drone Logs", command=self.saveDroneLog)
+        save_btn = self.button_wrapper.create_button(
+            drone_logs_frame, 12, text="Save Drone Logs", command=self.saveDroneLog
+        )
         self.button_wrapper.add_to_window(save_btn, pady=3)
 
         # Setup Scrollbar
@@ -95,7 +97,9 @@ class LoggingWindow:
         title.pack()
 
         # Save Log to File Button
-        save_btn = self.button_wrapper.create_button(user_logs_frame, 12, text="Save User Logs", command=self.saveUserLog)
+        save_btn = self.button_wrapper.create_button(
+            user_logs_frame, 12, text="Save User Logs", command=self.saveUserLog
+        )
         self.button_wrapper.add_to_window(save_btn, pady=3)
 
         # Setup Scrollbar
