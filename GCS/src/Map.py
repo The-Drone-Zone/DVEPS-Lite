@@ -18,10 +18,10 @@ class Map:
 
         # Initialize map widget
         if is_connected():
-            self.logs.addDroneLog(f"{self.map_name}: Using Map with Internet")
+            self.logs.addUserLog(f"{self.map_name}: Using Map with Internet")
             self.map_widget = TkinterMapView(map_frame, corner_radius=0)
         else:
-            self.logs.addDroneLog(f"{self.map_name}: Using Offline Map")
+            self.logs.addUserLog(f"{self.map_name}: Using Offline Map")
             # Get DB directory
             database_path = os.path.join(get_root_dir(), "offline_tiles.db")
             self.map_widget = TkinterMapView(
