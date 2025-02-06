@@ -9,10 +9,7 @@ class ButtonWrapper:
 
     def create_button(self, window, text_size=20, **kwargs):
         button = tk.Button(
-            window,
-            font=("Helvetica", text_size),
-            anchor="center",
-            **kwargs
+            window, font=("Helvetica", text_size), anchor="center", **kwargs
         )
 
         return button
