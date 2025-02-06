@@ -83,12 +83,7 @@ class Settings:
         )
         height_input.pack()
         # Create Save Button
-        save_btn = tk.Button(
-            height_frame,
-            text="Save",
-            font=("Helvetica", 12),
-            command=lambda: self.updateFlightHeight(height),
-        )
+        save_btn = self.button_wrapper.create_button(height_frame, 12, text="Save", command=lambda: self.updateFlightHeight(height))
         save_btn.pack(pady=5)
 
     def createFlightSpeedSection(self):
@@ -112,12 +107,7 @@ class Settings:
         speed_input = tk.Entry(speed_frame, textvariable=speed, font=("Helvetica", 15))
         speed_input.pack()
         # Create Save Button
-        save_btn = tk.Button(
-            speed_frame,
-            text="Save",
-            font=("Helvetica", 12),
-            command=lambda: self.updateFlightSpeed(speed),
-        )
+        save_btn = self.button_wrapper.create_button(speed_frame, 12, text="Save", command=lambda: self.updateFlightSpeed(speed))
         save_btn.pack(pady=5)
 
     def createMapPositionSection(self):
@@ -143,12 +133,7 @@ class Settings:
         self.position_map.map_widget.pack()
 
         # Create Save Button
-        save_btn = tk.Button(
-            position_frame,
-            text="Save",
-            font=("Helvetica", 12),
-            command=self.updateMapPosition,
-        )
+        save_btn = self.button_wrapper.create_button(position_frame, 12, text="Save", command=self.updateMapPosition)
         save_btn.pack(pady=5)
 
     def createOfflineMapSection(self):
@@ -176,12 +161,7 @@ class Settings:
             progress = tk.Label(offline_map_frame, text="", bg="lightblue")
 
             # Create Save Button
-            save_btn = tk.Button(
-                offline_map_frame,
-                text="Save",
-                font=("Helvetica", 12),
-                command=lambda: self.updateOfflineMap(progress),
-            )
+            save_btn = self.button_wrapper.create_button(offline_map_frame, 12, text="Save", command=lambda: self.updateOfflineMap(progress))
 
             save_btn.pack(pady=5)
             progress.pack()
