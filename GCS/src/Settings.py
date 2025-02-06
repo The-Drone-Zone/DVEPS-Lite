@@ -7,16 +7,13 @@ import os
 from Utils.loadOfflineTiles import loadOfflineTiles
 import threading
 import yaml
+from Utils.Utils import get_root_dir
 
 
 class Settings:
     def __init__(self, notebook, globals: Globals, logs: LoggingWindow):
         # Get Settings YAML file Path
-        script_directory = os.path.dirname(
-            os.path.abspath(__file__)
-        )  # Current script directory
-        parent_directory = os.path.dirname(script_directory)  # Move one folder back
-        self.settings_file = os.path.join(parent_directory, "settings.yml")
+        self.settings_file = os.path.join(get_root_dir(), "settings.yml")
 
         # Load Data from YAML
         with open(self.settings_file, "r") as file:
@@ -58,12 +55,12 @@ class Settings:
         )
         title.pack(pady=10)
 
-        self.flightHeight()
-        self.flightSpeed()
-        self.mapPosition()
-        self.offlineMap()
+        self.createFlightHeightSection()
+        self.createFlightSpeedSection()
+        self.createMapPositionSection()
+        self.createOfflineMapSection()
 
-    def flightHeight(self):
+    def createFlightHeightSection(self):
         # Create Frame for this section
         height_frame = self.frame_wrapper.create_frame(
             window=self.settings_tab, name="Flight Height", bg="lightblue"
@@ -94,7 +91,7 @@ class Settings:
         )
         save_btn.pack(pady=5)
 
-    def flightSpeed(self):
+    def createFlightSpeedSection(self):
         # Create Frame for this section
         speed_frame = self.frame_wrapper.create_frame(
             window=self.settings_tab, name="Flight Speed", bg="lightblue"
@@ -123,7 +120,7 @@ class Settings:
         )
         save_btn.pack(pady=5)
 
-    def mapPosition(self):
+    def createMapPositionSection(self):
         # Create Frame for this section
         position_frame = self.frame_wrapper.create_frame(
             window=self.settings_tab, name="Map Position Setting", bg="lightblue"
@@ -141,17 +138,12 @@ class Settings:
 
         # Initialize map widget
         if is_connected():
-            print("Using Map with Internet for Map Position Settings")
+            self.logs.addUserLog("Using Map with Internet for Map Position Settings")
             self.map_widget1 = TkinterMapView(position_frame, corner_radius=0)
         else:
-            print("Using Offline Map for Map Position Settings")
-            script_directory = os.path.dirname(
-                os.path.abspath(__file__)
-            )  # Current script directory
-            parent_directory = os.path.dirname(script_directory)  # Move one folder back
-            database_path = os.path.join(
-                parent_directory, "offline_tiles.db"
-            )  # DB in parent dir
+            self.logs.addUserLog("Using Offline Map for Map Position Settings")
+            # Get script directory
+            database_path = os.path.join(get_root_dir(), "offline_tiles.db")
             self.map_widget1 = TkinterMapView(
                 position_frame,
                 corner_radius=0,
@@ -169,8 +161,13 @@ class Settings:
         )
 
         # Add Create Marker Event
+        # self.map_widget1.add_right_click_menu_command(
+        #     label="Add Marker", command=lambda: self.add_marker_event(coords, id=1), pass_coords=True
+        # )
         self.map_widget1.add_right_click_menu_command(
-            label="Add Marker", command=self.add_marker_event1, pass_coords=True
+            label="Add Marker",
+            command=lambda coords: self.add_marker_event(coords, map_id=1),
+            pass_coords=True
         )
 
         # Create Save Button
@@ -182,7 +179,7 @@ class Settings:
         )
         save_btn.pack(pady=5)
 
-    def offlineMap(self):
+    def createOfflineMapSection(self):
         # Create Frame for this section
         offline_map_frame = self.frame_wrapper.create_frame(
             window=self.settings_tab, name="Offline Map Setting", bg="lightblue"
@@ -200,7 +197,7 @@ class Settings:
 
         # Initialize map widget
         if is_connected():
-            print("Using Map with Internet for Map Position Settings")
+            self.logs.addUserLog("Using Map with Internet for Map Position Settings")
             self.map_widget2 = TkinterMapView(offline_map_frame, corner_radius=0)
             # Place in frame
             self.map_widget2.pack()
@@ -212,7 +209,7 @@ class Settings:
 
             # Add Create Marker Event
             self.map_widget2.add_right_click_menu_command(
-                label="Add Marker", command=self.add_marker_event2, pass_coords=True
+                label="Add Marker", command=lambda coords: self.add_marker_event(coords, map_id=2), pass_coords=True
             )
 
             # Label to display download progress
@@ -245,7 +242,6 @@ class Settings:
             logText = f"Error: User attempted flight height to non decimal(float) value: {height.get()}"
             height.set(str(self.flight_height))
 
-        print(logText)
         self.logs.addUserLog(logText)
 
     def updateFlightSpeed(self, speed: tk.StringVar):
@@ -258,7 +254,6 @@ class Settings:
             logText = f"Error: User attempted flight speed to non decimal(float) value: {speed.get()}"
             speed.set(str(self.flight_speed))
 
-        print(logText)
         self.logs.addUserLog(logText)
 
     def updateMapPosition(self):
@@ -272,7 +267,6 @@ class Settings:
         else:
             logText = f"Error: User attempted to set starting map position to None"
 
-        print(logText)
         self.logs.addUserLog(logText)
 
     def updateOfflineMap(self, progress: tk.Label):
@@ -282,7 +276,6 @@ class Settings:
                 top_left_map = self.markers[0].position
                 bottom_right_map = self.markers[1].position
                 logText = f"User began downloading new offline map with corners at {top_left_map} and {bottom_right_map}"
-                print(logText)
                 self.logs.addUserLog(logText)
 
                 # Update the GUI safely
@@ -291,43 +284,37 @@ class Settings:
                 # Simulate the downloading process
                 loadOfflineTiles(top_left_map, bottom_right_map)
 
+                # Update the GUI safely after the download is complete
+                progress.after(0, lambda: progress.config(text="Download Complete"))
+
                 logText = f"User completed download of offline map with corners at {top_left_map} and {bottom_right_map}"
             else:
                 logText = f"Error: User attempted to download new offline map using invalid coordinates"
+                # Update the GUI safely with an error
+                progress.after(0, lambda: progress.config(text=logText))
 
-            print(logText)
             self.logs.addUserLog(logText)
-
-            # Update the GUI safely after the download is complete
-            progress.after(0, lambda: progress.config(text="Download Complete"))
 
         # Run the download task in a separate thread
         thread = threading.Thread(target=download_task, daemon=True)
         thread.start()
 
-    def add_marker_event1(self, coords):
-        print("Added marker in settings:", coords)
-        # Remove previously placed marker
-        if self.marker != None:
-            self.marker.delete()
-        # Place new marker
-        self.marker = self.map_widget1.set_marker(coords[0], coords[1])
-        self.logs.addUserLog(
-            "User added a marker on the map in the starting map position settings at: "
-            + str(coords[0])
-            + ", "
-            + str(coords[1])
-        )
-
-    def add_marker_event2(self, coords):
-        print("Added marker in settings:", coords)
-        # Remove marker if 2 or more are already placed
-        while len(self.markers) > 1:
-            self.markers[0].delete()
-            self.markers.pop(0)
-        # Place new marker
-        new_marker = self.map_widget2.set_marker(coords[0], coords[1])
-        self.markers.append(new_marker)
+    def add_marker_event(self, coords, map_id):
+        if map_id == 1:
+            # Remove previously placed marker
+            if self.marker != None:
+                self.marker.delete()
+            # Place new marker
+            self.marker = self.map_widget1.set_marker(coords[0], coords[1])
+        else: # id == 2
+            # Remove marker if 2 or more are already placed
+            while len(self.markers) > 1:
+                self.markers[0].delete()
+                self.markers.pop(0)
+            # Place new marker
+            new_marker = self.map_widget2.set_marker(coords[0], coords[1])
+            self.markers.append(new_marker)
+        # Add marker placement to log
         self.logs.addUserLog(
             "User added a marker on the map in the offline map settings at: "
             + str(coords[0])

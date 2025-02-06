@@ -45,5 +45,4 @@ class Initialize:
         notebook = event.widget
         tab_id = notebook.select()
         tab_text = notebook.tab(tab_id, "text")
-        print(f"Selected Tab Text: {tab_text}")
         self.logs_tab.addUserLog(f"User switched to the {tab_text} tab")

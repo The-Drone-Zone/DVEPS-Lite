@@ -4,6 +4,7 @@ import os
 from Utils.connected import is_connected
 from LogWindow import LoggingWindow
 from Settings import Settings
+from Utils.Utils import get_root_dir
 
 
 class Map:
@@ -16,17 +17,12 @@ class Map:
 
         # Initialize map widget
         if is_connected():
-            print("Using Map with Internet")
+            self.logs.addDroneLog("Using Map with Internet for Command Screen")
             self.map_widget = TkinterMapView(map_frame, corner_radius=0)
         else:
-            print("Using Offline Map")
-            script_directory = os.path.dirname(
-                os.path.abspath(__file__)
-            )  # Current script directory
-            parent_directory = os.path.dirname(script_directory)  # Move one folder back
-            database_path = os.path.join(
-                parent_directory, "offline_tiles.db"
-            )  # DB in parent dir
+            self.logs.addDroneLog("Using Offline Map for Command Screen")
+            # Get DB directory
+            database_path = os.path.join(get_root_dir(), "offline_tiles.db")
             self.map_widget = TkinterMapView(
                 map_frame,
                 corner_radius=0,
@@ -55,7 +51,6 @@ class Map:
         )
 
     def add_marker_event(self, coords):
-        print("Add marker:", coords)
         new_marker = self.map_widget.set_marker(
             coords[0], coords[1], text=str(len(self.markers) + 1)
         )
@@ -82,7 +77,6 @@ class Map:
         with open(file_path, "r") as file:
             content = file.read()
 
-        print(content)
         self.logs.addUserLog("User uploaded a custom flight path path")
 
     def clear_marks(self):

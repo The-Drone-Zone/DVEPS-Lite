@@ -5,6 +5,7 @@
 import tkintermapview
 import os
 import sys
+from Utils.Utils import get_root_dir
 
 
 # Default is U of A Mall
@@ -22,16 +23,9 @@ def loadOfflineTiles(
     zoom_min = 16
     zoom_max = 22
 
-    # specify path and name of the database
-    script_directory = os.path.dirname(
-        os.path.abspath(__file__)
-    )  # Current script directory
-    parent_directory = os.path.dirname(script_directory)  # Move one folder back
-    database_path = os.path.join(
-        parent_directory, "offline_tiles.db"
-    )  # DB in parent dir
-    print(database_path)
-
+    # Get DB directory
+    database_path = os.path.join(get_root_dir(), "offline_tiles.db")
+    
     # create OfflineLoader instance
     loader = tkintermapview.OfflineLoader(path=database_path)
     # loader = tkintermapview.OfflineLoader(path=database_path,
@@ -44,7 +38,7 @@ def loadOfflineTiles(
 
     # You can call save_offline_tiles() multiple times and load multiple regions into the database.
     # You can also pass a tile_server argument to the OfflineLoader and specify the server to use.
-    # This server needs to be then also set for the TkinterMapView when the database is used.
+    # This server needs to be set for the TkinterMapView when the database is used.
     # You can load tiles of multiple servers in the database. Which one then will be used depends on
     # which server is specified for the TkinterMapView.
 
