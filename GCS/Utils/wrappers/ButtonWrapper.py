@@ -7,7 +7,7 @@ class ButtonWrapper:
         self.window = None
         self.style = ttk.Style()
 
-    def create_button(self, window, text_size, **kwargs):
+    def create_button(self, window, text_size=20, **kwargs):
         button = tk.Button(
             window,
             font=("Helvetica", text_size),
