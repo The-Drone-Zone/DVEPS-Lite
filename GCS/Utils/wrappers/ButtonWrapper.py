@@ -11,7 +11,6 @@ class ButtonWrapper:
         button = tk.Button(
             window,
             font=("Helvetica", text_size),
-            padding=(0, 0),
             anchor="center",
             **kwargs
         )
