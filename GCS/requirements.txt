@@ -2,3 +2,4 @@ black
 pytest
 tk
 tkintermapview
+yaml
