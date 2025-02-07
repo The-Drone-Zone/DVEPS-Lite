@@ -3,28 +3,27 @@ from tkintermapview import TkinterMapView
 import os
 from Utils.connected import is_connected
 from LogWindow import LoggingWindow
+from Utils.Utils import get_root_dir
 
 
 class Map:
-    def __init__(self, map_frame, globals, logs: LoggingWindow):
+    def __init__(self, map_frame, map_name, globals, logs: LoggingWindow, settings):
         # Initialize global variables
         self.globals = globals
         self.window_wrapper = globals.window_wrapper
         self.logs = logs
+        self.settings = settings
+
+        self.map_name = map_name
 
         # Initialize map widget
         if is_connected():
-            print("Using Map with Internet")
+            self.logs.addUserLog(f"{self.map_name}: Using Map with Internet")
             self.map_widget = TkinterMapView(map_frame, corner_radius=0)
         else:
-            print("Using Offline Map")
-            script_directory = os.path.dirname(
-                os.path.abspath(__file__)
-            )  # Current script directory
-            parent_directory = os.path.dirname(script_directory)  # Move one folder back
-            database_path = os.path.join(
-                parent_directory, "offline_tiles.db"
-            )  # DB in parent dir
+            self.logs.addUserLog(f"{self.map_name}: Using Offline Map")
+            # Get DB directory
+            database_path = os.path.join(get_root_dir(), "offline_tiles.db")
             self.map_widget = TkinterMapView(
                 map_frame,
                 corner_radius=0,
@@ -34,13 +33,10 @@ class Map:
             )
             # self.map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga")
 
-        # Set widget location and size
-        self.map_widget.place(relx=0, rely=0, relwidth=1, relheight=1)
-
         # Set Starting Location
         self.map_widget.set_position(
-            32.2319, -110.9535
-        )  # University of Arizona, Tucson, AZ
+            self.settings.map_start_position[0], self.settings.map_start_position[1]
+        )
 
         # Track markers
         self.markers = []
@@ -53,17 +49,34 @@ class Map:
         )
 
     def add_marker_event(self, coords):
-        print("Add marker:", coords)
-        new_marker = self.map_widget.set_marker(
-            coords[0], coords[1], text=str(len(self.markers) + 1)
-        )
-        self.markers.append(new_marker)
-        self.marker_positions.append(new_marker.position)
-        # set a path
-        if len(self.markers) > 1:
-            self.path = self.map_widget.set_path(self.marker_positions)
+        if self.map_name == "Commands Map":
+            new_marker = self.map_widget.set_marker(
+                coords[0], coords[1], text=str(len(self.markers) + 1)
+            )
+            self.markers.append(new_marker)
+            self.marker_positions.append(new_marker.position)
+            # set a path
+            if len(self.markers) > 1:
+                self.path = self.map_widget.set_path(self.marker_positions)
+        elif self.map_name == "Starting Position Settings Map":
+            # Remove previously placed marker
+            while len(self.markers) > 0:
+                self.markers[0].delete()
+                self.markers.pop(0)
+            # Place new marker
+            new_marker = self.map_widget.set_marker(coords[0], coords[1])
+            self.markers.append(new_marker)
+        elif self.map_name == "Download Offline Tiles Map":
+            # Remove marker if 2 or more are already placed
+            while len(self.markers) > 1:
+                self.markers[0].delete()
+                self.markers.pop(0)
+            # Place new marker
+            new_marker = self.map_widget.set_marker(coords[0], coords[1])
+            self.markers.append(new_marker)
+        # Add marker placement to log
         self.logs.addUserLog(
-            "User added a marker on the map at: "
+            f"{self.map_name}: User added a marker on the map at: "
             + str(coords[0])
             + ", "
             + str(coords[1])
@@ -80,8 +93,9 @@ class Map:
         with open(file_path, "r") as file:
             content = file.read()
 
-        print(content)
-        self.logs.addUserLog("User uploaded a custom flight path path")
+        self.logs.addUserLog(
+            f"{self.map_name}: User uploaded a custom flight path path"
+        )
 
     def clear_marks(self):
         for marker in self.markers:
@@ -92,4 +106,4 @@ class Map:
         self.marker_positions = []
         self.path = None
 
-        self.logs.addUserLog("User removed all marks on the map")
+        self.logs.addUserLog(f"{self.map_name}: User removed all marks on the map")
