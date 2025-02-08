@@ -1,7 +1,6 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk
 from Map import Map
 from LogWindow import LoggingWindow
 from Drone import Drone
@@ -12,12 +11,20 @@ from Utils.Globals import Globals
 
 
 class CommandScreen:
-    def __init__(self, notebook, globals: Globals, drone: Drone, logs: LoggingWindow):
+    def __init__(
+        self,
+        notebook,
+        globals: Globals,
+        drone: Drone,
+        logs: LoggingWindow,
+        settings,
+    ):
         self.frame_wrapper = globals.frame_wrapper
         self.button_wrapper = globals.button_wrapper
         self.window_wrapper = globals.window_wrapper
         self.drone = drone
         self.logs = logs
+        self.settings = settings
 
         self.command_tab = self.frame_wrapper.create_frame(
             window=notebook, name="Command Tab"
@@ -72,7 +79,10 @@ class CommandScreen:
         ###############################################################################
         # These variables are for the Map Frame
 
-        self.map = Map(self.map_frame, globals, logs)
+        # Create Map
+        self.map = Map(self.map_frame, "Commands Map", globals, logs, settings)
+        # Set widget location and size
+        self.map.map_widget.place(relx=0, rely=0, relwidth=1, relheight=1)
         self.upload_plan_btn: tk.Button = None
         self.clear_markers_btn: tk.Button = None
 
@@ -142,13 +152,13 @@ class CommandScreen:
 
         # instead of clicking on a map a user can just upload a file of coordinates.
         self.upload_plan_btn = self.button_wrapper.create_button(
-            self.map_frame, 20, text="Upload Plan", command=self.map.upload_plan
+            self.map_frame, 15, text="Upload Plan", command=self.map.upload_plan
         )
         self.button_wrapper.add_centered_button(self.upload_plan_btn, y=70)
 
         # Create clear marks button
         self.clear_markers_btn = self.button_wrapper.create_button(
-            self.map_frame, 20, text="Clear Path", command=self.map.clear_marks
+            self.map_frame, 15, text="Clear Path", command=self.map.clear_marks
         )
         self.button_wrapper.add_centered_button(self.clear_markers_btn, y=110)
 
@@ -159,7 +169,7 @@ class CommandScreen:
             [self.video_frame, self.lidar_frame, self.map_frame],
         ):
             self.expand_btns[frame_name] = self.button_wrapper.create_button(
-                frame, 20, text="Expand", command=lambda f=frame: self.expand_frame(f)
+                frame, 15, text="Expand", command=lambda f=frame: self.expand_frame(f)
             )
             self.button_wrapper.add_centered_button(self.expand_btns[frame_name])
 
@@ -181,7 +191,7 @@ class CommandScreen:
         # this make a new button to go back to the original view. this button is added to the frame that was expand
         minimize_btn = self.button_wrapper.create_button(
             frame,
-            20,
+            15,
             text="Minimize",
             command=lambda: self.minimize_frames(minimize_btn),
         )

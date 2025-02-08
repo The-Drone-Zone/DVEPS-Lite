@@ -7,14 +7,11 @@ class ButtonWrapper:
         self.window = None
         self.style = ttk.Style()
 
-    def create_button(self, window, text_size, **kwargs):
-        self.style.configure(
-            "Custom.TButton",
-            font=("Helvetica", text_size),
-            padding=(0, 0),
-            anchor="center",
+    def create_button(self, window, text_size=20, **kwargs):
+        button = tk.Button(
+            window, font=("Helvetica", text_size), anchor="center", **kwargs
         )
-        button = ttk.Button(window, style="Custom.TButton", **kwargs)
+
         return button
 
     def add_to_window(self, button, row=0, column=0, **grid_options):

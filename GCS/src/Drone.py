@@ -16,30 +16,24 @@ class Drone:
 
     def command_drone(self, selected_option):
         if selected_option == "Takeoff":
-            print("Takeoff")
             self.logs.addUserLog("User selected the Takeoff command")
             self.takeoff_drone()
         elif selected_option == "Set Speed":
-            print("Set Speed")
             self.logs.addUserLog("User selected the Set Speed command")
             self.set_speed()
         elif selected_option == "Set Altitude":
-            print("Set Altitude")
             self.logs.addUserLog("User selected the Set Altitude command")
             self.set_altitude()
         elif selected_option == "Set Heading":
-            print("Set Heading")
             self.logs.addUserLog("User selected the Set Heading command")
             self.set_heading()
 
     def land_drone(self):
         # TODO hook up drone and sim
-        print("Landing Drone")
         self.logs.addUserLog("User selected the Land Drone command")
 
     def hover_drone(self):
         # TODO Hook up drone and sim
-        print("Hovering Drone")
         self.logs.addUserLog("User selected the Hover Drone command")
 
     # drone is landed and we take off to a certain height
@@ -63,9 +57,7 @@ class Drone:
             take_off_value = "xxx"
 
         self.altitude = int(take_off_value)
-        print(
-            f"Altitude: {take_off_value}"
-        )  # TODO make a logs class so we can log user input
+        self.logs.addUserLog(f"Altitude: {take_off_value}")
 
     def set_speed(self):
         self.window_wrapper.create_window(
@@ -80,7 +72,6 @@ class Drone:
             speed_value = "xxx"
 
         self.speed = float(speed_value)
-        print(f"Speed: {speed_value}")
 
     def set_altitude(self):
         self.window_wrapper.create_window(
@@ -97,7 +88,6 @@ class Drone:
             altitude_value = "xxx"
 
         self.altitude = int(altitude_value)
-        print(f"Altitude: {altitude_value}")
 
     def set_heading(self):
         self.window_wrapper.create_window(
@@ -112,4 +102,3 @@ class Drone:
             heading_value = "xxx"
 
         self.heading = int(heading_value)
-        print(f"Heading: {heading_value}")
