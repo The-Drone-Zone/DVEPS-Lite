@@ -34,5 +34,5 @@
 # Folder
 build/
 __pycache__/
-container_opencv/
 .vscode/
+container_opencv/
