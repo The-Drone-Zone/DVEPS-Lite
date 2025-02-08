@@ -34,3 +34,4 @@
 # Folder
 build/
 __pycache__/
+.vscode/
