@@ -42,6 +42,7 @@ jobs:
         docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
           set -e
           echo \"Building cmake\"
+          cd processor
           rm -rf build/
           mkdir -p build &&
           cd build &&
@@ -53,6 +54,7 @@ jobs:
     - name: Run Google Tests
       run: |
         docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
+          cd processor
           rm -rf build/
           mkdir -p build &&
           cd build &&
