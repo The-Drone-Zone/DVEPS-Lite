@@ -35,3 +35,4 @@
 build/
 __pycache__/
 .vscode/
+container_opencv/

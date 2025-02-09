@@ -18,8 +18,11 @@ jobs:
       run: cd processor
 
     # Build the Docker image
-    - name: Build Docker image
+    - name: Build Docker image simple formatter
       run: docker build -t cpp-ci-container ./processor
+
+    - name: Pull Docker image builder container
+      run: docker pull dshay22/opencv_cuda_for_laptops:latest
 
     # Run Clang Formatter inside Docker
     - name: Run Clang formatter
@@ -32,8 +35,14 @@ jobs:
           clang-format --version
           echo \"Reviewing Formatting\"
           find . -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror -style=file
-          
+        "
+
+    - name: Run Build Test
+      run: |
+        docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
+          set -e
           echo \"Building cmake\"
+          cd processor
           rm -rf build/
           mkdir -p build &&
           cd build &&
@@ -44,7 +53,8 @@ jobs:
       # Run Google Tests inside the container
     - name: Run Google Tests
       run: |
-        docker run --rm cpp-ci-container bash -c "
+        docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
+          cd processor
           rm -rf build/
           mkdir -p build &&
           cd build &&

@@ -9,30 +9,19 @@ set(CMAKE_CXX_STANDARD 17)
 # Set the build directory to 'build'
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
-# Add the source directory
-add_executable(drone src/main.cpp)
-
-# Enable testing
-enable_testing()
-
-# Add a simple test for command-line arguments
-add_test(
-    NAME HelloWorldTest
-    COMMAND drone 3 4
-)
-
-#### ADDED BY AIDAN (BELOW) ####
-
 # Include directories
 include_directories(include)
 
-# Add the source file
-add_library(math_functions src/math_functions.cpp)
-
-# Add sources
+# Define source files
 set(SOURCES
     src/math_functions.cpp
 )
+
+# Add the source file as a library
+add_library(math_functions ${SOURCES})
+
+# Add main executable
+add_executable(drone src/main.cpp)
 
 # Add test executable
 add_executable(test_math_functions
@@ -40,9 +29,15 @@ add_executable(test_math_functions
     ${SOURCES}
 )
 
-# Find and link Google Test
+# Find and link libraries
 find_package(GTest REQUIRED)
-target_link_libraries(test_math_functions PRIVATE GTest::gtest GTest::gtest_main)
+target_link_libraries(test_math_functions PRIVATE math_functions GTest::gtest GTest::gtest_main)
+
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(drone ${OpenCV_LIBS})
+
+
 
 # Add the test
 add_test(NAME TestMathFunctions COMMAND test_math_functions)
