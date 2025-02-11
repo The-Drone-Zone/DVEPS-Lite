@@ -62,13 +62,6 @@ class LoggingWindow:
             drone_logs_frame, yscrollcommand=drone_logs_scrollbar.set, padx=50, pady=10
         )
 
-        # Insert text into the text widget (DELETE ONCE REAL DATA)
-        for i in range(40):
-            drone_logs_text.insert(
-                tk.END, "DRONE TEXT DRONE COMMAND DRONES STUFF LOGS TELEM RANDOOOO\n"
-            )
-        drone_logs_text.see("end")
-
         # Disable Text Editing
         drone_logs_text.config(state="disabled")
 

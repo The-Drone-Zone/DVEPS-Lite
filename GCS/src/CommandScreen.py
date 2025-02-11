@@ -60,7 +60,13 @@ class CommandScreen:
 
         # minor command drowdowns
         self.command_dropdown = None
-        self.option_menu = ["Takeoff", "Set Speed", "Set Altitude", "Set Heading"]
+        self.option_menu = [
+            "Begin Mission",
+            "Pause Mission",
+            "Takeoff",
+            "Arm",
+            "Disarm",
+        ]
         self.chosen_val = tk.StringVar(self.commands_frame)
         self.chosen_val.set("Select Command")
         self.command_dropdown = tk.OptionMenu(
@@ -80,7 +86,7 @@ class CommandScreen:
         # These variables are for the Map Frame
 
         # Create Map
-        self.map = Map(self.map_frame, "Commands Map", globals, logs, settings)
+        self.map = Map(self.map_frame, "Commands Map", globals, logs, settings, drone)
         # Set widget location and size
         self.map.map_widget.place(relx=0, rely=0, relwidth=1, relheight=1)
         self.upload_plan_btn: tk.Button = None
@@ -134,14 +140,14 @@ class CommandScreen:
 
         # Create command buttons
         self.land_btn = self.button_wrapper.create_button(
-            self.commands_frame, 20, text="Land", command=self.drone.land_drone
+            self.commands_frame, 20, text="Land", command=self.drone.land_command
         )
         self.button_wrapper.add_to_window(
             self.land_btn, row=1, column=0, padx=10, pady=5, sticky="nsew"
         )
 
         self.hover_btn = self.button_wrapper.create_button(
-            self.commands_frame, 20, text="Hover", command=self.drone.hover_drone
+            self.commands_frame, 20, text="Hover", command=self.drone.hover_command
         )
         self.button_wrapper.add_to_window(
             self.hover_btn, row=2, column=0, padx=10, pady=5, sticky="nsew"
