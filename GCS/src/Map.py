@@ -7,12 +7,15 @@ from Utils.Utils import get_root_dir
 
 
 class Map:
-    def __init__(self, map_frame, map_name, globals, logs: LoggingWindow, settings):
+    def __init__(
+        self, map_frame, map_name, globals, logs: LoggingWindow, settings, drone=None
+    ):
         # Initialize global variables
         self.globals = globals
         self.window_wrapper = globals.window_wrapper
         self.logs = logs
         self.settings = settings
+        self.drone = drone
 
         self.map_name = map_name
 
@@ -48,16 +51,25 @@ class Map:
             label="Add Marker", command=self.add_marker_event, pass_coords=True
         )
 
+        if self.map_name == "Commands Map":
+            self.add_marker_event([self.drone.latitude, self.drone.longitude])
+
     def add_marker_event(self, coords):
         if self.map_name == "Commands Map":
-            new_marker = self.map_widget.set_marker(
-                coords[0], coords[1], text=str(len(self.markers) + 1)
-            )
+            if len(self.markers) == 0:
+                new_marker = self.map_widget.set_marker(
+                    coords[0], coords[1], text="Drone"
+                )
+            else:
+                new_marker = self.map_widget.set_marker(
+                    coords[0], coords[1], text=str(len(self.markers))
+                )
             self.markers.append(new_marker)
             self.marker_positions.append(new_marker.position)
             # set a path
             if len(self.markers) > 1:
                 self.path = self.map_widget.set_path(self.marker_positions)
+            self.drone.add_mission_item(coords[0], coords[1])
         elif self.map_name == "Starting Position Settings Map":
             # Remove previously placed marker
             while len(self.markers) > 0:
@@ -105,5 +117,9 @@ class Map:
         self.markers = []
         self.marker_positions = []
         self.path = None
+        self.drone.clear_mission_items()
+
+        if self.map_name == "Commands Map":
+            self.add_marker_event([self.drone.latitude, self.drone.longitude])
 
         self.logs.addUserLog(f"{self.map_name}: User removed all marks on the map")

@@ -1,104 +1,198 @@
-# TODO add imports here
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
+import asyncio
+import threading
+from mavsdk import System
+from mavsdk.mission import MissionItem, MissionPlan
 
 
 class Drone:
-    def __init__(self, WW, logs):
+    def __init__(self, WW, logs, settings):
         self.window_wrapper: WindowWrapper = WW
-        self.altitude: int = 0
-        self.speed: float = 0.0
+
+        self.drone = None
         self.heading: int = 0
         self.drone_status: DRONE_STATE = DRONE_STATE.LANDED
+        self.mission_items = []
+        self.latitude = 0
+        self.longitude = 0
+
         self.logs = logs
+        self.settings = settings
 
-        pass
+        # Initialize separate thread for running asyncio loop
+        self.loop = asyncio.new_event_loop()
+        self.async_thread = threading.Thread(target=self.run_async_loop, daemon=True)
+        self.async_thread.start()
 
+        asyncio.run_coroutine_threadsafe(self.setup(), self.loop)
+
+    def run_async_loop(self):
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    async def setup(self):
+        # Connect to Drone
+        self.drone = System(mavsdk_server_address="localhost", port=50051)
+        await self.drone.connect(
+            system_address="udp://:14550"
+        )  ## This system address will change to radio eventually
+
+        # Setup Drone Configuration based on Settings
+        asyncio.run_coroutine_threadsafe(self.set_takeoff_height_drone(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.set_speed_drone(), self.loop)
+
+        # Start telemetry log loops
+        asyncio.run_coroutine_threadsafe(self.print_status_text(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.print_battery(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.print_gps_info(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.print_position(), self.loop)
+
+        print("Waiting for drone to connect...")
+        async for state in self.drone.core.connection_state():
+            if state.is_connected:
+                self.logs.addDroneLog("-- Connected to drone!")
+                print(f"-- Connected to drone!")
+                break
+
+        print("Waiting for drone to have a global position estimate...")
+        async for health in self.drone.telemetry.health():
+            if health.is_global_position_ok and health.is_home_position_ok:
+                self.logs.addDroneLog("-- Global position estimate OK")
+                print("-- Global position estimate OK")
+                break
+
+    ## Telemetry Loop functions begin here ##
+    async def print_status_text(self):
+        async for status_text in self.drone.telemetry.status_text():
+            self.logs.addDroneLog(f"Status: {status_text.type}: {status_text.text}")
+            await asyncio.sleep(2)
+
+    async def print_battery(self):
+        async for battery in self.drone.telemetry.battery():
+            self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
+            await asyncio.sleep(2)
+
+    async def print_gps_info(self):
+        async for gps_info in self.drone.telemetry.gps_info():
+            self.logs.addDroneLog(f"{gps_info}")
+            await asyncio.sleep(2)
+
+    async def print_position(self):
+        async for position in self.drone.telemetry.position():
+            self.latitude = position.latitude_deg
+            self.longitude = position.longitude_deg
+            self.logs.addDroneLog(
+                f"Position: latitude: {position.latitude_deg}°, longitude: {position.longitude_deg}°"
+            )
+            self.logs.addDroneLog(
+                f"Altitude: relative: {round(position.relative_altitude_m, 3)} m, absolute: {round(position.absolute_altitude_m, 3)} m"
+            )
+            await asyncio.sleep(2)
+
+    ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):
-        if selected_option == "Takeoff":
+        if selected_option == "Begin Mission":
+            self.logs.addUserLog("User selected the Begin Mission command")
+            mission_plan = MissionPlan(self.mission_items)
+            asyncio.run_coroutine_threadsafe(
+                self.start_mission_drone(mission_plan), self.loop
+            )
+        elif selected_option == "Pause Mission":
+            self.logs.addUserLog("User selected the Pause Mission command")
+            asyncio.run_coroutine_threadsafe(self.pause_mission_drone(), self.loop)
+        elif selected_option == "Takeoff":
             self.logs.addUserLog("User selected the Takeoff command")
-            self.takeoff_drone()
-        elif selected_option == "Set Speed":
-            self.logs.addUserLog("User selected the Set Speed command")
-            self.set_speed()
-        elif selected_option == "Set Altitude":
-            self.logs.addUserLog("User selected the Set Altitude command")
-            self.set_altitude()
-        elif selected_option == "Set Heading":
-            self.logs.addUserLog("User selected the Set Heading command")
-            self.set_heading()
+            asyncio.run_coroutine_threadsafe(self.takeoff_drone(), self.loop)
+        elif selected_option == "Arm":
+            self.logs.addUserLog("User selected the Arm command")
+            asyncio.run_coroutine_threadsafe(self.arm_drone(), self.loop)
+        elif selected_option == "Disarm":
+            self.logs.addUserLog("User selected the Disarm command")
+            asyncio.run_coroutine_threadsafe(self.disarm_drone(), self.loop)
 
-    def land_drone(self):
-        # TODO hook up drone and sim
+    def land_command(self):
         self.logs.addUserLog("User selected the Land Drone command")
+        asyncio.run_coroutine_threadsafe(self.land_drone(), self.loop)
 
-    def hover_drone(self):
-        # TODO Hook up drone and sim
+    def hover_command(self):
         self.logs.addUserLog("User selected the Hover Drone command")
+        asyncio.run_coroutine_threadsafe(self.hover_drone(), self.loop)
 
-    # drone is landed and we take off to a certain height
-    def takeoff_drone(self):
-        if (
-            DRONE_STATE.LANDED != self.drone_status
-        ):  # TODO  this probably should happen in a different way.
-            return
-
-        take_off_value: str = ""
-
-        self.window_wrapper.create_window(
-            "takeoff", title="Takeoff", width=300, height=200
-        )
-        take_off_value = self.window_wrapper.display_custom_window(
-            "takeoff", message="Enter the desired altitude:", input_prompt="Altitude"
-        )
-        self.window_wrapper.destroy_window("takeoff")
-
-        if not take_off_value:
-            take_off_value = "xxx"
-
-        self.altitude = int(take_off_value)
-        self.logs.addUserLog(f"Altitude: {take_off_value}")
+    def set_takeoff_height(self):
+        asyncio.run_coroutine_threadsafe(self.set_takeoff_height_drone(), self.loop)
 
     def set_speed(self):
-        self.window_wrapper.create_window(
-            "Set Speed", title="Set Speed (m/s)", width=300, height=200
+        asyncio.run_coroutine_threadsafe(self.set_speed_drone(), self.loop)
+
+    ## ASync MavLink command functions begin here ##
+    async def set_takeoff_height_drone(self):
+        await self.drone.action.set_takeoff_altitude(self.settings.flight_height)
+
+    async def set_speed_drone(self):
+        await self.drone.action.set_current_speed(self.settings.flight_speed)
+
+    async def land_drone(self):
+        await self.drone.action.land()
+
+    async def hover_drone(self):
+        await self.drone.action.hold()
+
+    async def start_mission_drone(self, mission_plan):
+        await self.drone.mission.clear_mission()
+        self.logs.addDroneLog("-- Uploading Mission")
+        await self.drone.mission.upload_mission(mission_plan)
+        await self.drone.action.arm()
+        self.logs.addDroneLog("-- Starting Mission")
+        await self.drone.mission.start_mission()
+
+    async def pause_mission_drone(self):
+        await self.drone.mission.pause_mission()
+
+    # drone is landed and we take off to a certain height
+    async def takeoff_drone(self):
+        # if (
+        #     DRONE_STATE.LANDED != self.drone_status
+        # ):
+        #     return
+
+        await self.drone.action.arm()
+        await self.drone.action.takeoff()
+
+    async def arm_drone(self):
+        await self.drone.action.arm()
+
+    async def disarm_drone(self):
+        await self.drone.action.disarm()
+
+    ## Mission Creation helper functions
+    def add_mission_item(self, latitude, longitude):
+        self.mission_items.append(
+            MissionItem(
+                latitude,  # latitude_deg (double) – Latitude in degrees (range: -90 to +90)
+                longitude,  # longitude_deg (double) – Longitude in degrees (range: -180 to +180)
+                self.settings.flight_height,  # relative_altitude_m (float) – Altitude relative to takeoff altitude in metres
+                self.settings.flight_speed,  # speed_m_s (float) – Speed to use after this mission item (in metres/second)
+                True,  # is_fly_through (bool) – True will make the drone fly through without stopping, while false will make the drone stop on the waypoint
+                float("nan"),  # gimbal_pitch_deg (float) – Gimbal pitch (in degrees)
+                float("nan"),  # gimbal_yaw_deg (float) – Gimbal yaw (in degrees)
+                MissionItem.CameraAction.NONE,  # camera_action (CameraAction) – Camera action to trigger at this mission item
+                float("nan"),  # loiter_time_s (float) – Loiter time (in seconds)
+                float(
+                    "nan"
+                ),  # camera_photo_interval_s (double) – Camera photo interval to use after this mission item (in seconds)
+                float(
+                    "nan"
+                ),  # acceptance_radius_m (float) – Radius for completing a mission item (in metres)
+                float(
+                    "nan"
+                ),  # yaw_deg (float) – Absolute yaw angle (in degrees) camera_photo_distance_m (float) – Camera photo distance to use after this mission item (in meters)
+                float(
+                    "nan"
+                ),  # camera_photo_distance_m (float) – Camera photo distance to use after this mission item (in meters)
+                MissionItem.VehicleAction.NONE,
+            )  # vehicle_action (VehicleAction) – Vehicle action to trigger at this mission item.
         )
-        speed_value = self.window_wrapper.display_custom_window(
-            "Set Speed", message="Enter the desired speed:", input_prompt="Speed"
-        )
-        self.window_wrapper.destroy_window("Set Speed")
 
-        if not speed_value:
-            speed_value = "xxx"
-
-        self.speed = float(speed_value)
-
-    def set_altitude(self):
-        self.window_wrapper.create_window(
-            "Set Altitude", title="Set Altitude (m)", width=300, height=200
-        )
-        altitude_value = self.window_wrapper.display_custom_window(
-            "Set Altitude",
-            message="Enter the desired altitude:",
-            input_prompt="Altitude",
-        )
-        self.window_wrapper.destroy_window("Set Altitude")
-
-        if not altitude_value:
-            altitude_value = "xxx"
-
-        self.altitude = int(altitude_value)
-
-    def set_heading(self):
-        self.window_wrapper.create_window(
-            "Set Heading", title="Set Heading (degrees)", width=300, height=200
-        )
-        heading_value = self.window_wrapper.display_custom_window(
-            "Set Heading", message="Enter the desired heading:", input_prompt="Heading"
-        )
-        self.window_wrapper.destroy_window("Set Heading")
-
-        if not heading_value:
-            heading_value = "xxx"
-
-        self.heading = int(heading_value)
+    def clear_mission_items(self):
+        self.mission_items = []
