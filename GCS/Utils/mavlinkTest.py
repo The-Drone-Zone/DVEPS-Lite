@@ -5,7 +5,7 @@ from mavsdk import System
 async def run():
 
     drone = System(mavsdk_server_address="localhost", port=50051)
-    await drone.connect(system_address="udp://192.168.50.180:14550")
+    await drone.connect(system_address="udp://:14550")
 
     status_text_task = asyncio.ensure_future(print_status_text(drone))
 

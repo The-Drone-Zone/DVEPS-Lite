@@ -13,7 +13,7 @@ Running MavSDK_server
 Connecting to drone via MavSDK scripts:
 - first line "drone = System(mavsdk_server_address='localhost', port=50051)"
 - second line "await drone.connect(system_address="udp://<JETSON IP>:14550")"
-- IP at Aidan's house: 192.168.50.180
+- This is used in Drone.py and mavLinkTest.py
 
 GCS w/ SITL Testing
 - Default starting location for SITL is: 47.397971399999996, 8.5461638

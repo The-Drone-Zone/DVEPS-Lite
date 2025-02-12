@@ -35,7 +35,7 @@ class Drone:
         # Connect to Drone
         self.drone = System(mavsdk_server_address="localhost", port=50051)
         await self.drone.connect(
-            system_address="udp://192.168.50.180:14550"
+            system_address="udp://:14550"
         )  ## This system address will change to radio eventually
 
         # Setup Drone Configuration based on Settings
