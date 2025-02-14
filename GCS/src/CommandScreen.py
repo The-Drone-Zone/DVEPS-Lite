@@ -97,6 +97,15 @@ class CommandScreen:
 
         self.create_buttons()
 
+        # Drone connection display
+        self.drone_connection_label = tk.Label(
+            self.command_tab,
+            text="Drone Not Connected",
+            justify=tk.CENTER,
+            font=("Helvetica", 15),
+        )
+        self.drone_connection_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
+
     def create_frames(self):
 
         # grid_row/column configure ensures row or column fills available space with equal weight
@@ -229,3 +238,9 @@ class CommandScreen:
         this_button.destroy()  # button destorys itself when pressed
 
         self.logs.addUserLog("User minimized a view in the command tab")
+
+    def update_drone_connected(self):
+        if self.drone.connected:
+            self.drone_connection_label.config(text="Drone Connected")
+        else:
+            self.drone_connection_label.config(text="Drone Not Connected")

@@ -16,9 +16,11 @@ class Drone:
         self.mission_items = []
         self.latitude = 0
         self.longitude = 0
+        self.connected = False
 
         self.logs = logs
         self.settings = settings
+        self.command_tab = None
 
         # Initialize separate thread for running asyncio loop
         self.loop = asyncio.new_event_loop()
@@ -35,7 +37,7 @@ class Drone:
         # Connect to Drone
         self.drone = System(mavsdk_server_address="localhost", port=50051)
         await self.drone.connect(
-            system_address="udp://:14550"
+            system_address="udp://192.168.6.140:14550"
         )  ## This system address will change to radio eventually
 
         # Setup Drone Configuration based on Settings
@@ -48,12 +50,15 @@ class Drone:
         asyncio.run_coroutine_threadsafe(self.print_gps_info(), self.loop)
         asyncio.run_coroutine_threadsafe(self.print_position(), self.loop)
 
-        print("Waiting for drone to connect...")
-        async for state in self.drone.core.connection_state():
-            if state.is_connected:
-                self.logs.addDroneLog("-- Connected to drone!")
-                print(f"-- Connected to drone!")
-                break
+        # Ensure drone is still connected
+        asyncio.run_coroutine_threadsafe(self.check_drone_connection(), self.loop)
+
+        # print("Waiting for drone to connect...")
+        # async for state in self.drone.core.connection_state():
+        #     if state.is_connected:
+        #         self.logs.addDroneLog("-- Connected to drone!")
+        #         print(f"-- Connected to drone!")
+        #         break
 
         print("Waiting for drone to have a global position estimate...")
         async for health in self.drone.telemetry.health():
@@ -88,6 +93,22 @@ class Drone:
             self.logs.addDroneLog(
                 f"Altitude: relative: {round(position.relative_altitude_m, 3)} m, absolute: {round(position.absolute_altitude_m, 3)} m"
             )
+            # if self.command_tab and self.command_tab.map: # Keep for possible later use, inaccurate with simulation
+            #     self.command_tab.map.update_drone_marker([self.latitude, self.longitude])
+            await asyncio.sleep(2)
+
+    async def check_drone_connection(self):
+        async for state in self.drone.core.connection_state():
+            if state.is_connected and not self.connected:
+                self.logs.addDroneLog("-- Connected to drone!")
+                self.connected = True
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
+            elif not state.is_connected and self.connected:
+                self.logs.addDroneLog("-- Disconnected from drone")
+                self.connected = False
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
             await asyncio.sleep(2)
 
     ## Button Click Event Handlers begin here ##

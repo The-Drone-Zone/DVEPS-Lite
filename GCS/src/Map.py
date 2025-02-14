@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkintermapview import TkinterMapView
 import os
+import csv
 from Utils.connected import is_connected
 from LogWindow import LoggingWindow
 from Utils.Utils import get_root_dir
@@ -42,6 +43,7 @@ class Map:
         )
 
         # Track markers
+        self.drone_marker = None
         self.markers = []
         self.marker_positions = []
         self.path = None
@@ -53,17 +55,13 @@ class Map:
 
         if self.map_name == "Commands Map":
             self.add_marker_event([self.drone.latitude, self.drone.longitude])
+            # self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
 
     def add_marker_event(self, coords):
         if self.map_name == "Commands Map":
-            if len(self.markers) == 0:
-                new_marker = self.map_widget.set_marker(
-                    coords[0], coords[1], text="Drone"
-                )
-            else:
-                new_marker = self.map_widget.set_marker(
-                    coords[0], coords[1], text=str(len(self.markers))
-                )
+            new_marker = self.map_widget.set_marker(
+                coords[0], coords[1], text=str(len(self.markers))
+            )
             self.markers.append(new_marker)
             self.marker_positions.append(new_marker.position)
             # set a path
@@ -94,6 +92,15 @@ class Map:
             + str(coords[1])
         )
 
+    def update_drone_marker(self, coords):
+        print(f"updating drone map: {coords}")
+        if self.map_name == "Commands Map":
+            if self.drone_marker:
+                self.drone_marker.delete()
+            self.drone_marker = self.map_widget.set_marker(
+                coords[0], coords[1], text="Drone"
+            )
+
     def upload_plan(self):
         file_path = self.window_wrapper.display_input_box(
             "Enter the path to the plan file you want to upload:", title="Upload Plan"
@@ -102,12 +109,26 @@ class Map:
         if file_path and not os.path.isfile(file_path):
             file_path = self.globals.Utils.ask_for_input(file_path)
 
-        with open(file_path, "r") as file:
-            content = file.read()
+        try:
+            # Open and read the file line by line
+            with open(file_path, mode="r") as file:
+                reader = csv.reader(file)
+                next(reader)  # Skip the header row
 
-        self.logs.addUserLog(
-            f"{self.map_name}: User uploaded a custom flight path path"
-        )
+                for row in reader:
+                    latitude, longitude = row
+                    self.add_marker_event([float(latitude), float(longitude)])
+                    self.logs.addUserLog(
+                        f"{self.map_name}: User added marker at ({latitude}, {longitude}) by uploading a custom flight path file."
+                    )
+            self.logs.addUserLog(
+                f"{self.map_name}: User uploaded a custom flight path file."
+            )
+        except Exception as e:
+            self.logs.addUserLog(
+                f"{self.map_name}: Error: User attempted to upload an invalid flight path file: {e}"
+            )
+            self.clear_marks()
 
     def clear_marks(self):
         for marker in self.markers:
@@ -121,5 +142,6 @@ class Map:
 
         if self.map_name == "Commands Map":
             self.add_marker_event([self.drone.latitude, self.drone.longitude])
+            # self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
 
         self.logs.addUserLog(f"{self.map_name}: User removed all marks on the map")
