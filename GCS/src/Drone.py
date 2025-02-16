@@ -37,7 +37,7 @@ class Drone:
         # Connect to Drone
         self.drone = System(mavsdk_server_address="localhost", port=50051)
         await self.drone.connect(
-            system_address="udp://192.168.6.140:14550"
+            system_address="udp://:14550"
         )  ## This system address will change to radio eventually
 
         # Setup Drone Configuration based on Settings
@@ -53,13 +53,6 @@ class Drone:
         # Ensure drone is still connected
         asyncio.run_coroutine_threadsafe(self.check_drone_connection(), self.loop)
 
-        # print("Waiting for drone to connect...")
-        # async for state in self.drone.core.connection_state():
-        #     if state.is_connected:
-        #         self.logs.addDroneLog("-- Connected to drone!")
-        #         print(f"-- Connected to drone!")
-        #         break
-
         print("Waiting for drone to have a global position estimate...")
         async for health in self.drone.telemetry.health():
             if health.is_global_position_ok and health.is_home_position_ok:
@@ -70,44 +63,47 @@ class Drone:
     ## Telemetry Loop functions begin here ##
     async def print_status_text(self):
         async for status_text in self.drone.telemetry.status_text():
-            self.logs.addDroneLog(f"Status: {status_text.type}: {status_text.text}")
+            if self.connected:
+                self.logs.addDroneLog(f"Status: {status_text.type}: {status_text.text}")
             await asyncio.sleep(2)
 
     async def print_battery(self):
         async for battery in self.drone.telemetry.battery():
-            self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
+            if self.connected:
+                self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
             await asyncio.sleep(2)
 
     async def print_gps_info(self):
         async for gps_info in self.drone.telemetry.gps_info():
-            self.logs.addDroneLog(f"{gps_info}")
+            if self.connected:
+                self.logs.addDroneLog(f"{gps_info}")
             await asyncio.sleep(2)
 
     async def print_position(self):
         async for position in self.drone.telemetry.position():
-            self.latitude = position.latitude_deg
-            self.longitude = position.longitude_deg
-            self.logs.addDroneLog(
-                f"Position: latitude: {position.latitude_deg}°, longitude: {position.longitude_deg}°"
-            )
-            self.logs.addDroneLog(
-                f"Altitude: relative: {round(position.relative_altitude_m, 3)} m, absolute: {round(position.absolute_altitude_m, 3)} m"
-            )
-            # if self.command_tab and self.command_tab.map: # Keep for possible later use, inaccurate with simulation
-            #     self.command_tab.map.update_drone_marker([self.latitude, self.longitude])
+            if self.connected:
+                self.latitude = position.latitude_deg
+                self.longitude = position.longitude_deg
+                self.logs.addDroneLog(
+                    f"Position: latitude: {position.latitude_deg}°, longitude: {position.longitude_deg}°"
+                )
+                self.logs.addDroneLog(
+                    f"Altitude: relative: {round(position.relative_altitude_m, 3)} m, absolute: {round(position.absolute_altitude_m, 3)} m"
+                )
+                # if self.command_tab and self.command_tab.map: # Keep for possible later use, inaccurate with simulation
+                #     self.command_tab.map.update_drone_marker([self.latitude, self.longitude])
             await asyncio.sleep(2)
 
     async def check_drone_connection(self):
         async for state in self.drone.core.connection_state():
-            if state.is_connected and not self.connected:
-                self.logs.addDroneLog("-- Connected to drone!")
-                self.connected = True
-                if self.command_tab:
+            if self.command_tab:
+                if state.is_connected and not self.connected:
+                    self.logs.addDroneLog("-- Connected to drone!")
+                    self.connected = True
                     self.command_tab.update_drone_connected()
-            elif not state.is_connected and self.connected:
-                self.logs.addDroneLog("-- Disconnected from drone")
-                self.connected = False
-                if self.command_tab:
+                elif not state.is_connected and self.connected:
+                    self.logs.addDroneLog("-- Disconnected from drone")
+                    self.connected = False
                     self.command_tab.update_drone_connected()
             await asyncio.sleep(2)
 
