@@ -36,8 +36,7 @@ build/
 __pycache__/
 .vscode/
 container_opencv/
-sdk/
 XXXOLDXXX/
 processor/log/
 processor/install/
-processor/src/dveps_lite_pkg/
+processor/src/vision_opencv/

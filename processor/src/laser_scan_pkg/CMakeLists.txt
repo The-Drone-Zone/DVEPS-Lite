@@ -5,29 +5,61 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Find dependencies
+set(RPLIDAR_SDK_PATH "./sdk/")
+
+FILE(GLOB RPLIDAR_SDK_SRC 
+  "${RPLIDAR_SDK_PATH}/src/arch/linux/*.cpp"
+  "${RPLIDAR_SDK_PATH}/src/dataunpacker/*.cpp"
+  "${RPLIDAR_SDK_PATH}/src/dataunpacker/unpacker/*.cpp"
+  "${RPLIDAR_SDK_PATH}/src/hal/*.cpp"
+  "${RPLIDAR_SDK_PATH}/src/*.cpp"
+)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
-set(LIDAR_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../sdk")
-include_directories(${LIDAR_SDK_DIR}/include)
-link_directories(${LIDAR_SDK_DIR}/src)
-message(STATUS "LIDAR SDK Directory: ${LIDAR_SDK_DIR}")
+include_directories(
+  ${RPLIDAR_SDK_PATH}/include
+  ${RPLIDAR_SDK_PATH}/src
+  ${Boost_INCLUDE_DIRS}
+)
 
-set(LIB_SDK_A "${CMAKE_CURRENT_SOURCE_DIR}/../../output/Linux/Release")
-message(STATUS "LIDAR SDK Directory: ${LIB_SDK_A}")
+add_executable(rplidar_node	src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
+# target_link_libraries(rplidar_node ${ament_cmake_LIBRARIES})
+ament_target_dependencies(rplidar_node
+  rclcpp
+  std_srvs
+  sensor_msgs
+)
 
-# Add the RPLidar publisher node
-add_executable(lidar_pub_node src/lidar_pub_node.cpp)
-ament_target_dependencies(lidar_pub_node rclcpp sensor_msgs std_srvs)
-target_link_libraries(lidar_pub_node ${LIB_SDK_A}/libsl_lidar_sdk.a)
+add_executable(rplidar_composition src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
+ament_target_dependencies(rplidar_composition
+  rclcpp
+  std_srvs
+  sensor_msgs
+)
 
-# Add the Lidar subscriber node
-add_executable(lidar_sub_node src/lidar_sub_node.cpp)
-ament_target_dependencies(lidar_sub_node rclcpp sensor_msgs)
+add_executable(rplidar_client src/lidar_sub_node.cpp)
+ament_target_dependencies(rplidar_client
+  rclcpp
+  std_srvs
+  sensor_msgs
+)
 
-install(TARGETS lidar_pub_node lidar_sub_node DESTINATION lib/${PROJECT_NAME})
 
+# install(DIRECTORY launch rviz
+#   DESTINATION share/${PROJECT_NAME}
+# )
+
+install(
+  TARGETS rplidar_node rplidar_composition rplidar_client
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(std_msgs)
+ament_export_dependencies(sensor_msgs)
+ament_export_include_directories(include)
 ament_package()
