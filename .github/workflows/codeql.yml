@@ -48,11 +48,10 @@ jobs:
           if [ "${{ matrix.language }}" == "c-cpp" ]; then
             echo "Running make or equivalent build commands for C/C++..."
             cd processor
-            rm -rf build/
-            mkdir -p build &&
-            cd build &&
-            cmake .. &&
-            cmake --build .
+            rm -rf build/ install/ log/
+            source /opt/ros/humble/setup.bash
+            source . install/setup.bash
+            colcon build
             exit 0
           fi
 
