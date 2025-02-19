@@ -2,9 +2,9 @@
 
 #include <image_transport/image_transport.hpp>
 #include <iostream>
-#include <opencv4/opencv2/core/cuda.hpp>
-#include <opencv4/opencv2/cudafilters.hpp>
-#include <opencv4/opencv2/opencv.hpp>
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"

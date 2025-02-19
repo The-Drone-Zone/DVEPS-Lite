@@ -2,10 +2,10 @@
 
 #include <image_transport/image_transport.hpp>
 #include <iostream>
-#include <opencv4/opencv2/core/cuda.hpp>
-#include <opencv4/opencv2/cudafilters.hpp>
-#include <opencv4/opencv2/cudaimgproc.hpp>
-#include <opencv4/opencv2/opencv.hpp>
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -29,7 +29,11 @@ class ImageSubscriber : public rclcpp::Node {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
         }
-
+        ///////////////////////////////////////////////////////////////////
+        //
+        //completly ripped from chat GPT, but it is only a template soo idc
+        //
+        ///////////////////////////////////////////////////////////////////
         cv::Mat frame = cv_ptr->image;
         // cv::imshow("Image", frame);
         cv::cuda::GpuMat gpu_frame;
@@ -46,6 +50,12 @@ class ImageSubscriber : public rclcpp::Node {
         // Download back to CPU (if needed)
         cv::Mat blurred_frame;
         gpu_blurred.download(blurred_frame);
+        ///////////////////////////////////////////////////////////////////
+        //
+        //completly ripped from chat GPT, but it is only a template soo idc
+        //
+        ///////////////////////////////////////////////////////////////////
+        
         cv::waitKey(1);
     }
 

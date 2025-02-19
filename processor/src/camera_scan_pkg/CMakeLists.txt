@@ -5,7 +5,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -13,15 +12,22 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(CUDA REQUIRED)
-# Check if we are in a Docker container
+
 file(READ "/proc/1/cgroup" cgroup_content)
 if(cgroup_content MATCHES "docker")
     set(OpenCV_DIR "/usr/local/lib/cmake/opencv4")
+else()
+    set(OpenCV_DIR "/ssd/opencv/lib/cmake/opencv4")
 endif()
+
+# Find OpenCV 4.10
 find_package(OpenCV 4.10 REQUIRED)
 
 # # Specify the OpenCV version you want to use
-# message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+message(STATUS "Opencv Include dirs: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
+
 
 add_executable(img_pub_node src/img_raw_pub_node.cpp)
 ament_target_dependencies(img_pub_node
@@ -44,9 +50,9 @@ ament_target_dependencies(img_sub_node
 )
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
+
 link_directories(${OpenCV_LIB_DIR} ${CUDA_LIBRARIES})
 target_link_libraries(img_sub_node ${OpenCV_LIBS} opencv_core opencv_imgproc opencv_cudaimgproc)
-
 
 install(TARGETS
   img_pub_node
