@@ -31,7 +31,7 @@ class ImageSubscriber : public rclcpp::Node {
         }
         ///////////////////////////////////////////////////////////////////
         //
-        //completly ripped from chat GPT, but it is only a template soo idc
+        // completly ripped from chat GPT, but it is only a template soo idc
         //
         ///////////////////////////////////////////////////////////////////
         cv::Mat frame = cv_ptr->image;
@@ -56,10 +56,10 @@ class ImageSubscriber : public rclcpp::Node {
         // cv::imshow("Filtered Image", blurred_frame);
         ///////////////////////////////////////////////////////////////////
         //
-        //completly ripped from chat GPT, but it is only a template soo idc
+        // completly ripped from chat GPT, but it is only a template soo idc
         //
         ///////////////////////////////////////////////////////////////////
-        
+
         cv::waitKey(1);
     }
 
