@@ -52,8 +52,8 @@ class ImageSubscriber : public rclcpp::Node {
         gpu_blurred.download(blurred_frame);
 
         // Display the processed image
-        cv::namedWindow("Filtered Image", cv::WINDOW_NORMAL);
-        cv::imshow("Filtered Image", blurred_frame);
+        // cv::namedWindow("Filtered Image", cv::WINDOW_NORMAL);
+        // cv::imshow("Filtered Image", blurred_frame);
         ///////////////////////////////////////////////////////////////////
         //
         //completly ripped from chat GPT, but it is only a template soo idc
