@@ -184,16 +184,6 @@ ENV DEBIAN_FRONTEND=interactive
 RUN apt install -y python3-colcon-common-extensions
 RUN apt install -y libboost-all-dev
 RUN apt install ros-humble-image-transport
-##########################################################################
-
-# git clone -b humble https://github.com/ros-perception/vision_opencv.git
-
-# source /opt/ros/humble/setup.bash
-# colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge
-# colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
-# colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
-# colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4
-##########################################################################
 
 # Set the working directory
 WORKDIR /workspace

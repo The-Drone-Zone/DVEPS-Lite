@@ -16,8 +16,8 @@
 
 class ImagePublisher : public rclcpp::Node {
    public:
-    // we mihgt need to change the width and height of image, we we do update the  timer_ to match the fps of the new
-    // resolution. It is possible to control the behaiver of the queue more precisly by setting the queue size and the
+    //We might need to change the width and height of the image. When we do, we update the timer_ to match the FPS of the new resolution. 
+    //It is possible to control the behavior of the queue more precisely by setting the queue size.
     // maximum time the queue can hold a frame. EX:queue max-size-buffers=100 max-size-time=200000000
     ImagePublisher()
         : Node("img_pub_node"),
