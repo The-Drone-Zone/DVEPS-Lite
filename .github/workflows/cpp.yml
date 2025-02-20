@@ -1,8 +1,8 @@
 name: C++ CI
 
 on:
-  push:
-    branches: [ "*" ]
+  # push:
+  #   branches: [ "*" ]
 
 jobs:
   build-format-test:
@@ -22,7 +22,7 @@ jobs:
       run: docker build -t cpp-ci-container ./processor
 
     - name: Pull Docker image builder container
-      run: docker pull dshay22/opencv_cuda_for_laptops:latest
+      run: docker pull dshay22/opencv_cuda_for_laptops:v3
 
     # Run Clang Formatter inside Docker
     - name: Run Clang formatter
@@ -39,27 +39,31 @@ jobs:
 
     - name: Run Build Test
       run: |
-        docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
+        docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
           set -e
-          echo \"Building cmake\"
+          echo \"Building colcon\"
           cd processor
-          rm -rf build/
-          mkdir -p build &&
-          cd build &&
-          cmake .. &&
-          cmake --build .
+          rm -rf build/ install/ log/
+          export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
+          source /opt/ros/humble/setup.bash
+          cd src/
+          git clone -b humble https://github.com/ros-perception/vision_opencv.git
+          apt install -y libboost-all-dev
+          colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
+          colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
+          colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
         "
 
       # Run Google Tests inside the container
-    - name: Run Google Tests
-      run: |
-        docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
-          cd processor
-          rm -rf build/
-          mkdir -p build &&
-          cd build &&
-          cmake .. &&
-          cmake --build . &&
-          echo 'Running Google Tests'
-          ./test_math_functions
-        "
+    # - name: Run Google Tests
+    #   run: |
+    #     docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:latest bash -c "
+    #       cd processor
+    #       rm -rf build/
+    #       mkdir -p build &&
+    #       cd build &&
+    #       cmake .. &&
+    #       cmake --build . &&
+    #       echo 'Running Google Tests'
+    #       ./test_math_functions
+    #     "

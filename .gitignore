@@ -36,3 +36,10 @@ build/
 __pycache__/
 .vscode/
 container_opencv/
+XXXOLDXXX/
+processor/log/
+processor/install/
+processor/src/vision_opencv/
+
+#temprary folder
+processor/src/laser_scan_pkg
