@@ -49,8 +49,14 @@ jobs:
             echo "Running make or equivalent build commands for C/C++..."
             cd processor
             rm -rf build/ install/ log/
+            export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
             source /opt/ros/humble/setup.bash
-            colcon build
+            cd src/
+            git clone -b humble https://github.com/ros-perception/vision_opencv.git
+            apt install -y libboost-all-dev
+            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
+            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
+            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
             exit 0
           fi
 
