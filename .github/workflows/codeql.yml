@@ -9,7 +9,7 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-latest  
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }} 
     permissions:
       security-events: write
       packages: read
@@ -45,21 +45,26 @@ jobs:
 
       # Build step for languages requiring manual mode
       - name: Build code (docker build mode)
+        if: matrix.build-mode == 'manual'
         run: |
-          docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
-            set -e
-            echo \"Building colcon\"
-            cd processor
-            rm -rf build/ install/ log/
-            export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
-            source /opt/ros/humble/setup.bash
-            cd src/
-            git clone -b humble https://github.com/ros-perception/vision_opencv.git
-            apt install -y libboost-all-dev
-            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
-            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
-            colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
-          "
+          echo "Building code for ${{ matrix.language }}..."
+            if [ "${{ matrix.language }}" == "c-cpp" ]; then
+              docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
+                set -e
+                echo \"Building colcon\"
+                cd processor
+                rm -rf build/ install/ log/
+                export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
+                source /opt/ros/humble/setup.bash
+                cd src/
+                git clone -b humble https://github.com/ros-perception/vision_opencv.git
+                apt install -y libboost-all-dev
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
+              "
+              exit 0
+            fi
 
       # Perform the CodeQL analysis
       - name: Perform CodeQL Analysis
