@@ -41,11 +41,11 @@ jobs:
       run: |
         docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
           set -e
-          echo \"Building cmake\"
+          echo \"Building colcon\"
           cd processor
           rm -rf build/ install/ log/
           source /opt/ros/humble/setup.bash
-          source . install/setup.bash
+          . install/setup.bash
           colcon build
         "
 
