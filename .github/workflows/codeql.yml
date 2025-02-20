@@ -50,7 +50,6 @@ jobs:
             cd processor
             rm -rf build/ install/ log/
             source /opt/ros/humble/setup.bash
-            source . install/setup.bash
             colcon build
             exit 0
           fi

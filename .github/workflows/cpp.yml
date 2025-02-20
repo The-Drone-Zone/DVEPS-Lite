@@ -45,7 +45,6 @@ jobs:
           cd processor
           rm -rf build/ install/ log/
           source /opt/ros/humble/setup.bash
-          . install/setup.bash
           colcon build
         "
 
