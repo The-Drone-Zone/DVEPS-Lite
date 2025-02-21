@@ -8,10 +8,17 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(CUDA REQUIRED)
+
+rosidl_default_interfaces(camera_scan_pkg
+  "msg/Obstacle.msg"
+  "msg/ObstacleArray.msg"
+  DEPENDENCIES geometry_msgs)
 
 file(READ "/proc/1/cgroup" cgroup_content)
 if(cgroup_content MATCHES "docker")
@@ -39,8 +46,8 @@ ament_target_dependencies(img_pub_node
   OpenCV
 )
 
-add_executable(img_sub_node src/img_raw_sub_node.cpp)
-ament_target_dependencies(img_sub_node
+add_executable(img_analysis_node src/img_raw_sub_node.cpp)
+ament_target_dependencies(img_analysis_node
   rclcpp
   std_msgs
   sensor_msgs
@@ -52,11 +59,11 @@ ament_target_dependencies(img_sub_node
 include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
 
 link_directories(${OpenCV_LIB_DIR} ${CUDA_LIBRARIES})
-target_link_libraries(img_sub_node ${OpenCV_LIBS} opencv_core opencv_imgproc opencv_cudaimgproc)
+target_link_libraries(img_analysis_node ${OpenCV_LIBS} opencv_core opencv_imgproc opencv_cudaimgproc)
 
 install(TARGETS
   img_pub_node
-  img_sub_node
+  img_analysis_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
