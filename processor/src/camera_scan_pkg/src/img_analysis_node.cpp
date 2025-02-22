@@ -76,9 +76,9 @@ class ImageAnalysis : public rclcpp::Node {
         // End time
         auto end = std::chrono::high_resolution_clock::now();
         // Compute duration
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         // Print analysis time
-        RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration);
+        RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration_ms);
     }
 
     // Convert BGR Image to GrayscaleS
