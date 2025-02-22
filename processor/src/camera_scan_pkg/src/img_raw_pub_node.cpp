@@ -12,7 +12,7 @@
 
 
  // cap("nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, "
-        //     "framerate=22/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! tee name=t ! "
+        //     "framerate=30/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! tee name=t ! "
         //     "queue ! appsink drop=true t. ! queue ! nvoverlaysink", cv::CAP_GSTREAMER) 
 
         
@@ -34,7 +34,7 @@ class ImagePublisher : public rclcpp::Node {
         }
 
         publisher_ = this->create_publisher<sensor_msgs::msg::Image>("camera/image", 10);
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(22), std::bind(&ImagePublisher::publishImage, this));
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(34), std::bind(&ImagePublisher::publishImage, this));
     }
 
     ~ImagePublisher() { cap.release(); }
