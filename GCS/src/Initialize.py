@@ -20,10 +20,11 @@ class Initialize:
         self.globals = Globals()
         self.logs_tab = LoggingWindow(self.notebook, self.globals)
         self.settings = Settings(self.notebook, self.globals, self.logs_tab)
-        self.drone = Drone(self.globals.window_wrapper, self.logs_tab)
+        self.drone = Drone(self.globals.window_wrapper, self.logs_tab, self.settings)
         self.command_tab = CommandScreen(
             self.notebook, self.globals, self.drone, self.logs_tab, self.settings
         )
+        self.drone.command_tab = self.command_tab
 
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()

@@ -1,5 +1,5 @@
 flight_height: 1.0
-flight_speed: 5.0
+flight_speed: 50.0
 map_start_position:
-  latitude: 32.231778802101644
-  longitude: -110.95347758423651
+  latitude: 47.397971399999996
+  longitude: 8.5461638

@@ -63,7 +63,7 @@ class Settings:
     def createFlightHeightSection(self):
         # Create Frame for this section
         height_frame = self.frame_wrapper.create_frame(
-            window=self.settings_tab, name="Flight Height", bg="lightblue"
+            window=self.settings_tab, name="Flight Height (m)", bg="lightblue"
         )
         height_frame.pack(pady=10)
         # Create Label
@@ -94,7 +94,7 @@ class Settings:
     def createFlightSpeedSection(self):
         # Create Frame for this section
         speed_frame = self.frame_wrapper.create_frame(
-            window=self.settings_tab, name="Flight Speed", bg="lightblue"
+            window=self.settings_tab, name="Flight Speed (m/s)", bg="lightblue"
         )
         speed_frame.pack(pady=10)
         # Create Label

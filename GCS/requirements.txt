@@ -3,3 +3,5 @@ pytest
 tk
 tkintermapview
 pyyaml
+mavsdk
+asyncio
