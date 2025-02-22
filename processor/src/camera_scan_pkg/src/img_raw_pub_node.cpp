@@ -24,7 +24,7 @@ class ImagePublisher : public rclcpp::Node {
     ImagePublisher()
         : Node("img_pub_node"),
           cap("nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, "
-              "framerate=47/1 ! nvvidconv ! video/x-raw, format=(string)GRAY8 ! tee name=t ! queue ! appsink t. ! "
+              "framerate=30/1 ! nvvidconv ! video/x-raw, format=(string)GRAY8 ! tee name=t ! queue ! appsink t. ! "
               "queue ! nvoverlaysink",
               cv::CAP_GSTREAMER) {
         if (!cap.isOpened()) {
