@@ -18,6 +18,8 @@
         
 class ImagePublisher : public rclcpp::Node {
    public:
+    long int time_sum = 0;
+    long int counter = 0;
     //We might need to change the width and height of the image. When we do, we update the timer_ to match the FPS of the new resolution. 
     //It is possible to control the behavior of the queue more precisely by setting the queue size.
     // maximum time the queue can hold a frame. EX:queue max-size-buffers=100 max-size-time=200000000
@@ -34,13 +36,15 @@ class ImagePublisher : public rclcpp::Node {
         }
 
         publisher_ = this->create_publisher<sensor_msgs::msg::Image>("camera/image", 10);
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(34), std::bind(&ImagePublisher::publishImage, this));
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(33), std::bind(&ImagePublisher::publishImage, this));
     }
 
     ~ImagePublisher() { cap.release(); }
 
    private:
     void publishImage() {
+        // Start time
+        auto start = std::chrono::high_resolution_clock::now();
         cv::Mat frame;
 
         if (!cap.read(frame)) {
@@ -56,6 +60,15 @@ class ImagePublisher : public rclcpp::Node {
         msg_->header.stamp = this->now();
         publisher_->publish(*msg_);
         RCLCPP_INFO(this->get_logger(), "Image %d published", count_);
+        // End time
+        auto end = std::chrono::high_resolution_clock::now();
+        // Compute duration
+        std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds >(end - start);
+        // Print analysis time
+        RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration_ms.count());
+        time_sum += duration_ms.count();
+        counter += 1;
+        RCLCPP_INFO(this->get_logger(), "Current Average Analysis Time: %ld ms", time_sum / counter);
     }
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;

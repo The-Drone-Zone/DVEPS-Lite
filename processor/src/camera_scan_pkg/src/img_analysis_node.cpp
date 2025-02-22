@@ -24,6 +24,8 @@ class ImageAnalysis : public rclcpp::Node {
     cv::Ptr<cv::cuda::Filter> gaussFilter;
     cv::Ptr<cv::cuda::Filter> morphFilter;
     cv::Ptr<cv::cuda::CannyEdgeDetector> canny;
+    long int time_sum = 0;
+    long int counter = 0;
 
     ImageAnalysis() : Node("img_analysis_node") {
         // Create Subscriber
@@ -79,6 +81,9 @@ class ImageAnalysis : public rclcpp::Node {
         std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds >(end - start);
         // Print analysis time
         RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration_ms.count());
+        time_sum += duration_ms.count();
+        counter += 1;
+        RCLCPP_INFO(this->get_logger(), "Current Average Analysis Time: %ld ms", time_sum / counter);
     }
 
     // Convert BGR Image to GrayscaleS
