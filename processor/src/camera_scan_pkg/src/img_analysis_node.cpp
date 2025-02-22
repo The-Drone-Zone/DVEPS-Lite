@@ -2,6 +2,7 @@
 
 #include <image_transport/image_transport.hpp>
 #include <iostream>
+#include <chrono>
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
@@ -40,6 +41,9 @@ class ImageAnalysis : public rclcpp::Node {
 
    private:
     void analysisCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
+        // Start time
+        auto start = std::chrono::high_resolution_clock::now();
+
         RCLCPP_INFO(this->get_logger(), "Received image with size: %zu bytes", msg->data.size());
         cv_bridge::CvImagePtr cv_ptr;
 
@@ -68,9 +72,16 @@ class ImageAnalysis : public rclcpp::Node {
 
         RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", out_msg.obstacles.size());
         publisher_->publish(out_msg);
+
+        // End time
+        auto end = std::chrono::high_resolution_clock::now();
+        // Compute duration
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        // Print analysis time
+        RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration);
     }
 
-    // Convert BGR Image to Grayscale
+    // Convert BGR Image to GrayscaleS
     void grayscale() {
         cv::cuda::cvtColor(gpu_frame, gpu_frame, cv::COLOR_BGR2GRAY);
     }
