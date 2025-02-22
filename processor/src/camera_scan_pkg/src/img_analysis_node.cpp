@@ -83,7 +83,7 @@ class ImageAnalysis : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "Analysis Time: %ld ms", duration_ms.count());
         time_sum += duration_ms.count();
         counter += 1;
-        RCLCPP_INFO(this->get_logger(), "Current Average Analysis Time: %ld ms", time_sum / counter);
+        RCLCPP_INFO(this->get_logger(), "Current Average Analysis FPS: %ld fps", 1000 / (time_sum / counter));
     }
 
     // Convert BGR Image to GrayscaleS
