@@ -7,6 +7,7 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudafeatures2d.hpp>
+#include <opencv2/cudaarithm.hpp>
 
 
 #include "rclcpp/rclcpp.hpp"
@@ -66,10 +67,10 @@ class ImageAnalysis : public rclcpp::Node {
             morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), gpuKernel);
         }
 
-        camera_scan_pkg::msg::ObstacleArray msg = processFrame();
+        camera_scan_pkg::msg::ObstacleArray out_msg = processFrame();
 
-        RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", msg.obstacles.size());
-        publisher_->publish(msg);
+        RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", out_msg.obstacles.size());
+        publisher_->publish(out_msg);
     }
 
     // Convert BGR Image to Grayscale
@@ -77,7 +78,7 @@ class ImageAnalysis : public rclcpp::Node {
         cv::cuda::cvtColor(gpu_frame, gpu_frame, cv::COLOR_BGR2GRAY);
     }
 
-    // Apply Threshold
+    // Apply Adaptive Threshold
     void threshold() {
         // No direct adaptive threshold for cuda so we combine gaussian filtering with thresholding
         cv::cuda::GpuMat blurred;
