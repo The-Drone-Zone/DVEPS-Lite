@@ -58,13 +58,10 @@ class ImageAnalysis : public rclcpp::Node {
         // Initialize filters once (ones that are dependent on gpu_frame existing)
         if (!gpu_frame.empty() && !gaussFilter) {
             // Create Gaussian filter for threshold
-            gaussFilter = cv::cuda::createGaussianFilter(gpu_frame.type(), gpu_frame.type(), cv::Size(75,75), 15);
+            gaussFilter = cv::cuda::createGaussianFilter(gpu_frame.type(), gpu_frame.type(), cv::Size(31,31), 15);
              // No instantiation for structuring element gpu kernel exists, must be uploaded
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
-            cv::cuda::GpuMat gpuKernel;
-            gpuKernel.upload(kernel);
-            // Create dilation filter using kernel
-            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), gpuKernel);
+            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), kernel);
         }
 
         camera_scan_pkg::msg::ObstacleArray out_msg = processFrame();
@@ -154,7 +151,7 @@ class ImageAnalysis : public rclcpp::Node {
     }
 
     camera_scan_pkg::msg::ObstacleArray processFrame() {
-        grayscale();
+        //grayscale(); //TBD
         threshold();
         dilation();
         edgeDetection();

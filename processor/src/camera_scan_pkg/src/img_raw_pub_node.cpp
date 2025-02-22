@@ -10,10 +10,12 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_msgs/msg/header.hpp"
 
-// cv::VideoCapture cap("nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, format=(string)NV12,
-// framerate=30/1 ! nvvidconv ! video/x-raw, format=(string)GRAY8 ! tee name=t ! queue ! appsink t. ! queue !
-// nvoverlaysink", cv::CAP_GSTREAMER);
 
+ // cap("nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1920, height=1080, format=(string)NV12, "
+        //     "framerate=22/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! tee name=t ! "
+        //     "queue ! appsink drop=true t. ! queue ! nvoverlaysink", cv::CAP_GSTREAMER) 
+
+        
 class ImagePublisher : public rclcpp::Node {
    public:
     //We might need to change the width and height of the image. When we do, we update the timer_ to match the FPS of the new resolution. 
