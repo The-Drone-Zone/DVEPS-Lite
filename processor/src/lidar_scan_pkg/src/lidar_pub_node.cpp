@@ -215,6 +215,8 @@ class RPlidarNode : public rclcpp::Node {
 
         scan_msg->laser_scan.intensities.resize(node_count);
         scan_msg->laser_scan.ranges.resize(node_count);
+        scan_msg->x.resize(node_count);
+        scan_msg->y.resize(node_count);
         bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
 
         size_t scan_midpoint = node_count / 2;
