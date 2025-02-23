@@ -41,15 +41,15 @@ ament_target_dependencies(lidar_composition
   sensor_msgs
 )
 
-add_executable(lidar_subscriber src/lidar_sub_node.cpp)
-ament_target_dependencies(lidar_subscriber
+add_executable(lidar_analysis_node src/lidar_analysis_node.cpp)
+ament_target_dependencies(lidar_analysis_node
   rclcpp
   std_srvs
   sensor_msgs
 )
 
 install(
-  TARGETS lidar_node lidar_composition lidar_subscriber
+  TARGETS lidar_node lidar_composition lidar_analysis_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
