@@ -235,11 +235,11 @@ class RPlidarNode : public rclcpp::Node {
                 scan_msg->laser_scan.ranges[apply_index] = std::numeric_limits<float>::infinity();
             else
                 scan_msg->laser_scan.ranges[apply_index] = read_value;
+
             scan_msg->laser_scan.intensities[apply_index] = (float)(nodes[apply_index].quality >> 2);
+            scan_msg->x[i] = 0.0;
+            scan_msg->y[i] = 0.0;
         }
-        
-        scan_msg->x = 0.0;
-        scan_msg->y = 0.0;
 
         pub->publish(*scan_msg);
         scan_count++;
