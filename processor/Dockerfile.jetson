@@ -184,6 +184,9 @@ ENV DEBIAN_FRONTEND=interactive
 RUN apt install -y python3-colcon-common-extensions
 RUN apt install -y libboost-all-dev
 RUN apt install ros-humble-image-transport
+RUN apt install -y libboost-all-dev
+
+ENV OpenCV_DIR="/usr/local/lib/cmake/opencv4"
 
 # Set the working directory
 WORKDIR /workspace
