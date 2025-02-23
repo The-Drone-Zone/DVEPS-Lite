@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Pull Docker image builder container
-        run: docker pull dshay22/opencv_cuda_for_laptops:v3
+        run: docker pull dshay22/opencv_cuda_for_laptops:v4
 
       # Initialize CodeQL with the appropriate language and build mode
       - name: Initialize CodeQL
@@ -50,7 +50,7 @@ jobs:
         run: |
           echo "Building code for ${{ matrix.language }}..."
             if [ "${{ matrix.language }}" == "c-cpp" ]; then
-              container_id=$(docker run -d --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3)
+              container_id=$(docker run -d --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v4)
               docker exec $container_id bash -c "
                 set -e
                 echo \"Building colcon\"
@@ -59,6 +59,7 @@ jobs:
                 source /opt/ros/humble/setup.bash
                 cd src/
                 git clone -b humble https://github.com/ros-perception/vision_opencv.git
+                cd ../
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
