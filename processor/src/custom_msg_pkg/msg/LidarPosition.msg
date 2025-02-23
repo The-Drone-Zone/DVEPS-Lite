@@ -1,5 +1,3 @@
-# LaserScanWithPosition.msg
-# std_msgs/Header header
-sensor_msgs/LaserScan laser_scan
+float32[] z
 float32[] x
 float32[] y

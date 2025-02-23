@@ -189,34 +189,32 @@ class RPlidarNode : public rclcpp::Node {
         return node.angle_z_q14 * 90.f / 16384.f;
     }
 
-    void publish_scan(rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr& pub,
+    void publish_scan(rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr& pub,
                       sl_lidar_response_measurement_node_hq_t* nodes, size_t node_count, rclcpp::Time start,
                       double scan_time, bool inverted, bool flip_X_axis, float angle_min, float angle_max,
                       float max_distance, std::string frame_id) {
-        auto scan_msg = std::make_shared<custom_msg_pkg::msg::LidarPosition>();
+        auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
 
-        scan_msg->laser_scan.header.stamp = start;
-        scan_msg->laser_scan.header.frame_id = frame_id;
+        scan_msg->header.stamp = start;
+        scan_msg->header.frame_id = frame_id;
 
         bool reversed = (angle_max > angle_min);
         if (reversed) {
-            scan_msg->laser_scan.angle_min = M_PI - angle_max;
-            scan_msg->laser_scan.angle_max = M_PI - angle_min;
+            scan_msg->angle_min = M_PI - angle_max;
+            scan_msg->angle_max = M_PI - angle_min;
         } else {
-            scan_msg->laser_scan.angle_min = M_PI - angle_min;
-            scan_msg->laser_scan.angle_max = M_PI - angle_max;
+            scan_msg->angle_min = M_PI - angle_min;
+            scan_msg->angle_max = M_PI - angle_max;
         }
-        scan_msg->laser_scan.angle_increment = (scan_msg->laser_scan.angle_max - scan_msg->laser_scan.angle_min) / (double)(node_count - 1);
+        scan_msg->angle_increment = (scan_msg->angle_max - scan_msg->angle_min) / (double)(node_count - 1);
 
-        scan_msg->laser_scan.scan_time = scan_time;
-        scan_msg->laser_scan.time_increment = scan_time / (double)(node_count - 1);
-        scan_msg->laser_scan.range_min = 0.15;
-        scan_msg->laser_scan.range_max = max_distance;  // 8.0;
+        scan_msg->scan_time = scan_time;
+        scan_msg->time_increment = scan_time / (double)(node_count - 1);
+        scan_msg->range_min = 0.15;
+        scan_msg->range_max = max_distance;  // 8.0;
 
-        scan_msg->laser_scan.intensities.resize(node_count);
-        scan_msg->laser_scan.ranges.resize(node_count);
-        scan_msg->x.resize(node_count);
-        scan_msg->y.resize(node_count);
+        scan_msg->intensities.resize(node_count);
+        scan_msg->ranges.resize(node_count);
         bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
 
         size_t scan_midpoint = node_count / 2;
@@ -234,13 +232,10 @@ class RPlidarNode : public rclcpp::Node {
             }
 
             if (read_value == 0.0)
-                scan_msg->laser_scan.ranges[apply_index] = std::numeric_limits<float>::infinity();
+                scan_msg->ranges[apply_index] = std::numeric_limits<float>::infinity();
             else
-                scan_msg->laser_scan.ranges[apply_index] = read_value;
-
-            scan_msg->laser_scan.intensities[apply_index] = (float)(nodes[apply_index].quality >> 2);
-            scan_msg->x[i] = 0.0;
-            scan_msg->y[i] = 0.0;
+                scan_msg->ranges[apply_index] = read_value;
+            scan_msg->intensities[apply_index] = (float)(nodes[apply_index].quality >> 2);
         }
 
         pub->publish(*scan_msg);
@@ -394,7 +389,7 @@ class RPlidarNode : public rclcpp::Node {
             return -1;
         }
 
-        scan_pub = this->create_publisher<custom_msg_pkg::msg::LidarPosition>(topic_name, rclcpp::QoS(rclcpp::KeepLast(10)));
+        scan_pub = this->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, rclcpp::QoS(rclcpp::KeepLast(10)));
 
         stop_motor_service = this->create_service<std_srvs::srv::Empty>(
             "stop_motor", std::bind(&RPlidarNode::stop_motor, this, std::placeholders::_1, std::placeholders::_2));
@@ -518,7 +513,7 @@ class RPlidarNode : public rclcpp::Node {
     }
 
    private:
-    rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr scan_pub;
+    rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr scan_pub;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr start_motor_service;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr stop_motor_service;
 
