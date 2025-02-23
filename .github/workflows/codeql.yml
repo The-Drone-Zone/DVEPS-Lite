@@ -40,6 +40,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          source-root: ./processor/build
           # Uncomment and specify custom queries here, if needed
           # queries: security-extended,security-and-quality
 
@@ -49,20 +50,23 @@ jobs:
         run: |
           echo "Building code for ${{ matrix.language }}..."
             if [ "${{ matrix.language }}" == "c-cpp" ]; then
-              docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
+              container_id=$(docker run -d --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3)
+              docker exec $container_id bash -c "
                 set -e
                 echo \"Building colcon\"
                 cd processor
                 rm -rf build/ install/ log/
-                export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
                 source /opt/ros/humble/setup.bash
                 cd src/
                 git clone -b humble https://github.com/ros-perception/vision_opencv.git
-                apt install -y libboost-all-dev
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
                 colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
               "
+
+              docker cp $container_id:/workspace/processor/build ./processor/build
+              docker cp $container_id:/workspace/processor/install ./processor/install
+
               exit 0
             fi
 
