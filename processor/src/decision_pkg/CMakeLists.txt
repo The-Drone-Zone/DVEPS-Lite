@@ -14,6 +14,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(camera_scan_pkg)
+find_package(custom_msg_pkg REQUIRED)
 
 # if(BUILD_TESTING)
 #   find_package(ament_lint_auto REQUIRED)
@@ -34,6 +35,7 @@ ament_target_dependencies(decision_node
   sensor_msgs
   geometry_msgs
   camera_scan_pkg
+  custom_msg_pkg
 )
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -42,5 +44,8 @@ install(TARGETS
   decision_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(std_msgs)
 
 ament_package()
