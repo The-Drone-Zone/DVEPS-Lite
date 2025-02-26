@@ -20,7 +20,7 @@ class DecisionController : public rclcpp::Node {
             
             // Create Subscriber to LiDAR Analysis
             lidar_subscription_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
-                "output_obstacles", 10, std::bind(&DecisionController::lidarCallback, this, std::placeholders::_1));
+                "Lidar/analysis", 10, std::bind(&DecisionController::lidarCallback, this, std::placeholders::_1));
         }
     private:
         rclcpp::Subscription<camera_scan_pkg::msg::ObstacleArray>::SharedPtr image_subscription_;
@@ -32,7 +32,7 @@ class DecisionController : public rclcpp::Node {
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
-            printImageObstacles(msg);
+            //printImageObstacles(msg);
 
             // Image to LiDAR map function call goes here
 
