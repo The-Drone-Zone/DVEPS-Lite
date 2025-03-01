@@ -105,6 +105,7 @@ class CommandScreen:
             font=("Helvetica", 15),
         )
         self.drone_connection_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
+        self.update_drone_connected()
 
     def create_frames(self):
 
