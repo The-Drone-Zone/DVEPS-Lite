@@ -1,9 +1,10 @@
+from mavsdk import System
+from mavsdk.mission import MissionItem, MissionPlan
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
 import asyncio
+import os
 import threading
-from mavsdk import System
-from mavsdk.mission import MissionItem, MissionPlan
 
 
 class Drone:
@@ -40,10 +41,20 @@ class Drone:
         # await self.drone.connect(
         #     system_address="udp://:14550"
         # ) 
-        self.drone = System(mavsdk_server_address="localhost", port=50051)
-        await self.drone.connect(
-            system_address="serial://COM3:57600"
-        ) 
+
+        if os.name == "nt":  # Windows
+
+            self.drone = System(mavsdk_server_address="localhost", port=50051)
+            await self.drone.connect(
+                system_address="serial://COM3:57600"
+            )
+        elif os.name == "posix":  # Linux/macOS
+
+            self.drone = System()
+            await self.drone.connect(
+                system_address="serial:///dev/ttyUSB0:57600" # Not sure if this is the right serial no radio to test
+            )
+
 
         # Setup Drone Configuration based on Settings
         asyncio.run_coroutine_threadsafe(self.set_takeoff_height_drone(), self.loop)
