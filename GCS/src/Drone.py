@@ -52,7 +52,7 @@ class Drone:
 
             self.drone = System()
             await self.drone.connect(
-                system_address="serial:///dev/ttyUSB0:57600" # Not sure if this is the right serial no radio to test
+                system_address="serial:///dev/ttyUSB0:57600"
             )
 
 
