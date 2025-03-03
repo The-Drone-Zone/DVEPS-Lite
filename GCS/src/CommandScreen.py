@@ -241,7 +241,9 @@ class CommandScreen:
         self.logs.addUserLog("User minimized a view in the command tab")
 
     def update_drone_connected(self):
-        if self.drone.connected:
+        if self.drone.connected and self.drone.gps_ok:
+            self.drone_connection_label.config(text="Drone Ready")
+        elif self.drone.connected:
             self.drone_connection_label.config(text="Drone Connected")
         else:
             self.drone_connection_label.config(text="Drone Not Connected")
