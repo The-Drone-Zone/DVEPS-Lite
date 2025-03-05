@@ -9,6 +9,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudafeatures2d.hpp>
 #include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudaoptflow.hpp>
 
 
 #include "rclcpp/rclcpp.hpp"
@@ -19,11 +20,36 @@
 
 class ImageAnalysis : public rclcpp::Node {
    public:
+    class TrackedObstacle {
+        public:
+            std::vector<cv::Point2f> keypoints;
+            cv::cuda::GpuMat gpu_pointsMat;
+            int trackCount;
+
+            TrackedObstacle(std::vector<cv::KeyPoint> kp) {
+                keypoints = kp;
+                // Convert Point2f to GpuMat for optical flow
+                cv::Mat pointsMat(kp);
+                gpu_pointsMat.upload(pointsMat);
+                trackCount = 0;
+            }
+    }
+
+    std::vector<TrackedObstacle> tracked;
+    // Number of frames tracked before we stop drone
+    const int MAX_TRACKED = 5;
+
+    cv::cuda::GpuMat gpu_prevFrame;
     cv::cuda::GpuMat gpu_frame;
+    // For drawing (For Testing Only)
+    cv::Mat origFrame;
     cv::Mat frame;
     cv::Ptr<cv::cuda::Filter> gaussFilter;
     cv::Ptr<cv::cuda::Filter> morphFilter;
     cv::Ptr<cv::cuda::CannyEdgeDetector> canny;
+    cv::Ptr<cv::cuda::FastFeatureDetector> fast;
+    cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> opticalFlow;
+
     long int time_sum = 0;
     long int counter = 0;
 
@@ -32,16 +58,29 @@ class ImageAnalysis : public rclcpp::Node {
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
             "camera/image", 10, std::bind(&ImageAnalysis::analysisCallback, this, std::placeholders::_1));
 
-        // Create Publisher
+        // Create Obstacle Publisher
         publisher_ = this-> create_publisher<camera_scan_pkg::msg::ObstacleArray>(
             "output_obstacles", 10
+        );
+
+        // Create Image Publisher (For Testing Only)
+        image_publisher_ = this-> create_publisher<sensor_msgs::msg::Image>(
+            "analyzed_image", 10
         );
         
         // Create Canny Edge Detector (That way its not recreated each iteration) 
         canny = cv::cuda::createCannyEdgeDetector(100, 200);
+        // Create Fast Feature Detector (That way its not recreated each iteration) 
+        fast = cv::cuda::FastFeatureDetector::create();
+        // Create Optical Flow Calculator (That way its not recreated each iteration) 
+        opticalFlow = cv::cuda::SparsePyrLKOpticalFlow::create(winSize=(15,15), maxLevel=2);
     }
 
    private:
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+    rclcpp::Publisher<camera_scan_pkg::msg::ObstacleArray>::SharedPtr publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_; // For Testing Only
+
     void analysisCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
         // Start time
         auto start = std::chrono::high_resolution_clock::now();
@@ -166,16 +205,102 @@ class ImageAnalysis : public rclcpp::Node {
         return msg;
     }
 
+    void featureDetection(camera_scan_pkg::msg::ObstacleArray msg) {
+        std::vector<cv::KeyPoint> keypoints;
+        // Conduct fast feature detection on gpu frame
+        fast->detect(gpu_frame, keypoints);
+        // Loop through list of obstacles
+        for (camera_scan_pkg::msg::Obstacle obstacle : msg.obstacles) {
+            // KeyPoint must be converted to Point2f for Optical Flow
+            std::vector<cv::Point2f> new_kp;
+
+            for (cv::KeyPoint kp : keypoints) {
+                bool within_width = (obstacle.x <= kp.pt.x) && (kp.pt.x <= obstacle.x + obstacle.width);
+                bool within_height = (obstacle.y <= kp.pt.y) && (kp.pt.y <= obstacle.y + obstacle.height)
+
+                // Only add feature points that are within obstacle border, convert to Point2f
+                if (within_width && within_height) {
+                    new_kp.push_back(kp);
+                }
+            }
+            
+            // Add keypoints to track list for future optical flow use
+            tracked.push_back(TrackedObstacle(new_kp));
+        }
+    }
+
+    camera_scan_pkg::msg::ObstacleArray opticalFlow(camera_scan_pkg::msg::ObstacleArray msg) {
+        // Check if there is a previous image/frame stored
+        if (gpu_prevFrame) {
+            // Use iterator loop that allows safe removal of objects from vector
+            for (auto obstacle = tracked.begin(); obstacle != tracked.end()) {
+                // this prevents us from using it on first detection of an obstacle
+                if (obstacle->trackCount > 0) {
+                    // Conduct Optical Flow
+                    cv::cuda::GpuMat gpu_nextPts, gpu_status;
+                    opticalFlow->calc(gpu_prevFrame, gpu_frame, obstacle->gpu_pointsMat, gpu_nextPts, gpu_status)
+
+                    // Download results
+                    size_t keypoints_size = obstacle->keypoints.size();
+                    std::vector<cv::Point2f> nextPts(keypoints_size);
+                    std::vector<unsigned char> status(keypoints_size);
+                    gpu_nextPts.download(cv::Mat(nextPts));
+                    gpu_status.download(cv::Mat(status));
+
+                    // Replace vector with only matched feature points
+                    obstacle->keypoints.clear()
+                    for (size_t i = 0; i < keypoints_size; ++i) {
+                        // 1 = matching point found, 0 = not found
+                        if (status[i]) {
+                            obstacle->keypoints.push_back(nextPts[i]);
+                        }
+                    }
+                    
+                    // Check if any feature points were matched
+                    if (obstacle->keypoints.size() > 0) {
+                        // Update tracked obstacle variables
+                        cv::Mat pointsMat(obstacle->keypoints);
+                        obstacle->gpu_pointsMat.upload(pointsMat);
+                        obstacle->trackCount += 1;
+                        // Check if we need to stop drone
+                        if (obstacle->trackCount >= MAX_TRACKED) {
+                            msg.trackedObstacle = true;
+                        }
+
+                        // increment iterator to next in tracked vector (nothing removed)
+                        ++obstacle;
+                    }
+                    // if no matching feature points were found
+                    else {
+                        // remove obstacle from tracked list (don't increment iterator)
+                        obstacle = tracked.erase(obstacle);
+                    }   
+                }
+                // First time seeing obstacle
+                else {
+                    obstacle->trackCount += 1;
+                    // increment iterator to next in tracked vector (nothing removed)
+                    ++obstacle;
+                }
+            }
+        }
+        // store frame as previous frame for next optical flow use
+        gpu_frame.copyTo(gpu_prevFrame);
+        return msg;
+    }
+
     camera_scan_pkg::msg::ObstacleArray processFrame() {
+        camera_scan_pkg::msg::ObstacleArray msg
+        frame.copyTo(origFrame);
         //grayscale(); //TBD
         threshold();
         dilation();
         edgeDetection();
-        return boundingBoxes(contours());
+        msg = boundingBoxes(contours());
+        featureDetection(msg);
+        msg = opticalFlow(msg);
+        return msg;
     }
-
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
-    rclcpp::Publisher<camera_scan_pkg::msg::ObstacleArray>::SharedPtr publisher_;
 };
 
 int main(int argc, char** argv) {
