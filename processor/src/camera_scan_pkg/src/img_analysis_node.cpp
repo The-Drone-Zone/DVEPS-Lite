@@ -26,14 +26,14 @@ class ImageAnalysis : public rclcpp::Node {
             cv::cuda::GpuMat gpu_pointsMat;
             int trackCount;
 
-            TrackedObstacle(std::vector<cv::KeyPoint> kp) {
-                keypoints = kp;
+            TrackedObstacle(std::vector<cv::Point2f> kp) {
+                copy(kp.begin(), kp.end(), back_inserter(keypoints));
                 // Convert Point2f to GpuMat for optical flow
                 cv::Mat pointsMat(kp);
                 gpu_pointsMat.upload(pointsMat);
                 trackCount = 0;
             }
-    }
+    };
 
     std::vector<TrackedObstacle> tracked;
     // Number of frames tracked before we stop drone
@@ -73,7 +73,7 @@ class ImageAnalysis : public rclcpp::Node {
         // Create Fast Feature Detector (That way its not recreated each iteration) 
         fast = cv::cuda::FastFeatureDetector::create();
         // Create Optical Flow Calculator (That way its not recreated each iteration) 
-        opticalFlow = cv::cuda::SparsePyrLKOpticalFlow::create(winSize=(15,15), maxLevel=2);
+        opticalFlow = cv::cuda::SparsePyrLKOpticalFlow::create();
     }
 
    private:
@@ -113,6 +113,15 @@ class ImageAnalysis : public rclcpp::Node {
 
         RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", out_msg.obstacles.size());
         publisher_->publish(out_msg);
+
+        // Convert and Publish Image (For Testing Only)
+        sensor_msgs::msg::Image::SharedPtr image_msg;
+        cv_bridge::CvImage cv_image;
+        cv_image.image = frame; // frame or origFrame
+        cv_image.encoding = "mono8";
+        image_msg = cv_image.toImageMsg();
+        image_msg->header.stamp = this->now();
+        image_publisher_->publish(*image_msg);
 
         // End time
         auto end = std::chrono::high_resolution_clock::now();
@@ -216,11 +225,11 @@ class ImageAnalysis : public rclcpp::Node {
 
             for (cv::KeyPoint kp : keypoints) {
                 bool within_width = (obstacle.x <= kp.pt.x) && (kp.pt.x <= obstacle.x + obstacle.width);
-                bool within_height = (obstacle.y <= kp.pt.y) && (kp.pt.y <= obstacle.y + obstacle.height)
+                bool within_height = (obstacle.y <= kp.pt.y) && (kp.pt.y <= obstacle.y + obstacle.height);
 
                 // Only add feature points that are within obstacle border, convert to Point2f
                 if (within_width && within_height) {
-                    new_kp.push_back(kp);
+                    new_kp.push_back(kp.pt);
                 }
             }
             
@@ -229,16 +238,16 @@ class ImageAnalysis : public rclcpp::Node {
         }
     }
 
-    camera_scan_pkg::msg::ObstacleArray opticalFlow(camera_scan_pkg::msg::ObstacleArray msg) {
+    camera_scan_pkg::msg::ObstacleArray TrackOpticalFlow(camera_scan_pkg::msg::ObstacleArray msg) {
         // Check if there is a previous image/frame stored
-        if (gpu_prevFrame) {
+        if (!gpu_prevFrame.empty()) {
             // Use iterator loop that allows safe removal of objects from vector
-            for (auto obstacle = tracked.begin(); obstacle != tracked.end()) {
+            for (auto obstacle = tracked.begin(); obstacle != tracked.end();) {
                 // this prevents us from using it on first detection of an obstacle
                 if (obstacle->trackCount > 0) {
                     // Conduct Optical Flow
                     cv::cuda::GpuMat gpu_nextPts, gpu_status;
-                    opticalFlow->calc(gpu_prevFrame, gpu_frame, obstacle->gpu_pointsMat, gpu_nextPts, gpu_status)
+                    opticalFlow->calc(gpu_prevFrame, gpu_frame, obstacle->gpu_pointsMat, gpu_nextPts, gpu_status);
 
                     // Download results
                     size_t keypoints_size = obstacle->keypoints.size();
@@ -248,7 +257,7 @@ class ImageAnalysis : public rclcpp::Node {
                     gpu_status.download(cv::Mat(status));
 
                     // Replace vector with only matched feature points
-                    obstacle->keypoints.clear()
+                    obstacle->keypoints.clear();
                     for (size_t i = 0; i < keypoints_size; ++i) {
                         // 1 = matching point found, 0 = not found
                         if (status[i]) {
@@ -264,7 +273,7 @@ class ImageAnalysis : public rclcpp::Node {
                         obstacle->trackCount += 1;
                         // Check if we need to stop drone
                         if (obstacle->trackCount >= MAX_TRACKED) {
-                            msg.trackedObstacle = true;
+                            msg.tracked_obstacle = true;
                         }
 
                         // increment iterator to next in tracked vector (nothing removed)
@@ -289,8 +298,29 @@ class ImageAnalysis : public rclcpp::Node {
         return msg;
     }
 
+    void draw(camera_scan_pkg::msg::ObstacleArray msg) {
+        // Draw boxes
+        for (const camera_scan_pkg::msg::Obstacle& obstacle : msg.obstacles) {
+            for (size_t i = 0; i < 4; ++i) {
+                cv::line(origFrame, 
+                    cv::Point(obstacle.corners[i].x, obstacle.corners[i].y), 
+                    cv::Point(obstacle.corners[(i + 1) % 4].x, obstacle.corners[(i + 1) % 4].y), 
+                    cv::Scalar(0, 255, 0), // color
+                    2); // thickness
+            }
+        }
+        
+        // Draw points
+        for (const TrackedObstacle& obstacle : tracked) {
+            for (const cv::Point2f& point : obstacle.keypoints) {
+                cv::circle(origFrame, point, 3, cv::Scalar(0, 0, 255), -1); // Filled circle
+            }
+        }
+    }
+
     camera_scan_pkg::msg::ObstacleArray processFrame() {
-        camera_scan_pkg::msg::ObstacleArray msg
+        camera_scan_pkg::msg::ObstacleArray msg;
+        msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
         //grayscale(); //TBD
         threshold();
@@ -298,7 +328,8 @@ class ImageAnalysis : public rclcpp::Node {
         edgeDetection();
         msg = boundingBoxes(contours());
         featureDetection(msg);
-        msg = opticalFlow(msg);
+        msg = TrackOpticalFlow(msg);
+        draw(msg); // For Testing Only
         return msg;
     }
 };
