@@ -29,7 +29,7 @@ class ImageAnalysis : public rclcpp::Node {
             TrackedObstacle(std::vector<cv::Point2f> kp) {
                 copy(kp.begin(), kp.end(), back_inserter(keypoints));
                 // Convert Point2f to GpuMat for optical flow
-                cv::Mat pointsMat(kp);
+                cv::Mat pointsMat = cv::Mat(1, kp.size(), CV_32FC2, kp.data());
                 gpu_pointsMat.upload(pointsMat);
                 trackCount = 0;
             }
@@ -109,19 +109,21 @@ class ImageAnalysis : public rclcpp::Node {
             morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), kernel);
         }
 
-        camera_scan_pkg::msg::ObstacleArray out_msg = processFrame();
+        if(!gpu_frame.empty()) {
+            camera_scan_pkg::msg::ObstacleArray out_msg = processFrame();
 
-        RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", out_msg.obstacles.size());
-        publisher_->publish(out_msg);
+            RCLCPP_INFO(this->get_logger(), "Publishing %zu analyzed image obstacles", out_msg.obstacles.size());
+            publisher_->publish(out_msg);
 
-        // Convert and Publish Image (For Testing Only)
-        sensor_msgs::msg::Image::SharedPtr image_msg;
-        cv_bridge::CvImage cv_image;
-        cv_image.image = frame; // frame or origFrame
-        cv_image.encoding = "mono8";
-        image_msg = cv_image.toImageMsg();
-        image_msg->header.stamp = this->now();
-        image_publisher_->publish(*image_msg);
+            // Convert and Publish Image (For Testing Only)
+            sensor_msgs::msg::Image::SharedPtr image_msg;
+            cv_bridge::CvImage cv_image;
+            cv_image.image = frame; // frame or origFrame
+            cv_image.encoding = "mono8";
+            image_msg = cv_image.toImageMsg();
+            image_msg->header.stamp = this->now();
+            image_publisher_->publish(*image_msg);
+        }
 
         // End time
         auto end = std::chrono::high_resolution_clock::now();
@@ -244,18 +246,25 @@ class ImageAnalysis : public rclcpp::Node {
             // Use iterator loop that allows safe removal of objects from vector
             for (auto obstacle = tracked.begin(); obstacle != tracked.end();) {
                 // this prevents us from using it on first detection of an obstacle
-                if (obstacle->trackCount > 0) {
+                if (obstacle->trackCount > 0 && !obstacle->gpu_pointsMat.empty()) {
                     // Conduct Optical Flow
                     cv::cuda::GpuMat gpu_nextPts, gpu_status;
+                    std::cout << obstacle->gpu_pointsMat.rows << " ||| " << obstacle->gpu_pointsMat.cols << " ||| " << obstacle->gpu_pointsMat.channels() << std::endl;
                     opticalFlow->calc(gpu_prevFrame, gpu_frame, obstacle->gpu_pointsMat, gpu_nextPts, gpu_status);
-
+                    std::cout << "AFTER CALC\n";
                     // Download results
                     size_t keypoints_size = obstacle->keypoints.size();
                     std::vector<cv::Point2f> nextPts(keypoints_size);
-                    std::vector<unsigned char> status(keypoints_size);
-                    gpu_nextPts.download(cv::Mat(nextPts));
-                    gpu_status.download(cv::Mat(status));
+                    std::cout << "BELOW NEXT PTS \n";
 
+                    std::vector<unsigned char> status(keypoints_size);
+                    std::cout << "ABOVE after down\n" << keypoints_size << std::endl;
+
+                    gpu_nextPts.download(cv::Mat(1, nextPts.size(), CV_32FC2, nextPts.data()));
+                    std::cout << "\n";
+
+                    gpu_status.download(cv::Mat(1, status.size(), CV_32FC2, status.data()));
+                    std::cout << "AFTER after down\n";
                     // Replace vector with only matched feature points
                     obstacle->keypoints.clear();
                     for (size_t i = 0; i < keypoints_size; ++i) {
@@ -264,11 +273,11 @@ class ImageAnalysis : public rclcpp::Node {
                             obstacle->keypoints.push_back(nextPts[i]);
                         }
                     }
-                    
+                    std::cout << "AFTER match replacment\n";
                     // Check if any feature points were matched
                     if (obstacle->keypoints.size() > 0) {
                         // Update tracked obstacle variables
-                        cv::Mat pointsMat(obstacle->keypoints);
+                        cv::Mat pointsMat = cv::Mat(1, obstacle->keypoints.size(), CV_32FC2, obstacle->keypoints.data());
                         obstacle->gpu_pointsMat.upload(pointsMat);
                         obstacle->trackCount += 1;
                         // Check if we need to stop drone
@@ -282,7 +291,11 @@ class ImageAnalysis : public rclcpp::Node {
                     // if no matching feature points were found
                     else {
                         // remove obstacle from tracked list (don't increment iterator)
+                        std::cout << "ABOVE erase\n";
+
                         obstacle = tracked.erase(obstacle);
+                        std::cout << "AFTER erase\n";
+
                     }   
                 }
                 // First time seeing obstacle
@@ -327,8 +340,11 @@ class ImageAnalysis : public rclcpp::Node {
         dilation();
         edgeDetection();
         msg = boundingBoxes(contours());
+        std::cout << "ABOVE FEATURE\n";
         featureDetection(msg);
+        std::cout << "ABOVE TRACK\n";
         msg = TrackOpticalFlow(msg);
+        std::cout << "WE DID NOT EXPECT THIS\n";
         draw(msg); // For Testing Only
         return msg;
     }
