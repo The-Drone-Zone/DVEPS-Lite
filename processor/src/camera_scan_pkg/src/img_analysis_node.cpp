@@ -216,31 +216,34 @@ class ImageAnalysis : public rclcpp::Node {
         return msg;
     }
 
-    void featureDetection(camera_scan_pkg::msg::ObstacleArray msg) {
+    void featureDetection(const camera_scan_pkg::msg::ObstacleArray& msg) {
         std::vector<cv::KeyPoint> keypoints;
         // Conduct fast feature detection on gpu frame
         fast->detect(gpu_frame, keypoints);
         // Loop through list of obstacles
-        for (camera_scan_pkg::msg::Obstacle obstacle : msg.obstacles) {
+        for (const camera_scan_pkg::msg::Obstacle& obstacle : msg.obstacles) {
             // KeyPoint must be converted to Point2f for Optical Flow
             std::vector<cv::Point2f> new_kp;
+            new_kp.reserve(keypoints.size());  // Reserve memory to avoid repeated allocations
 
-            for (cv::KeyPoint kp : keypoints) {
-                bool within_width = (obstacle.x <= kp.pt.x) && (kp.pt.x <= obstacle.x + obstacle.width);
-                bool within_height = (obstacle.y <= kp.pt.y) && (kp.pt.y <= obstacle.y + obstacle.height);
+            float x_min = obstacle.x;
+            float x_max = obstacle.x + obstacle.width;
+            float y_min = obstacle.y;
+            float y_max = obstacle.y + obstacle.height;
 
-                // Only add feature points that are within obstacle border, convert to Point2f
-                if (within_width && within_height) {
-                    new_kp.push_back(kp.pt);
-                }
-            }
+            // Filter keypoints that are within obstacle
+            std::copy_if(keypoints.begin(), keypoints.end(), std::back_inserter(new_kp),
+                [&](const cv::KeyPoint& kp) {
+                    return (x_min <= kp.pt.x && kp.pt.x <= x_max) && 
+                        (y_min <= kp.pt.y && kp.pt.y <= y_max);
+                });
             
             // Add keypoints to track list for future optical flow use
             tracked.push_back(TrackedObstacle(new_kp));
         }
     }
 
-    camera_scan_pkg::msg::ObstacleArray TrackOpticalFlow(camera_scan_pkg::msg::ObstacleArray msg) {
+    camera_scan_pkg::msg::ObstacleArray oldTrackOpticalFlow(camera_scan_pkg::msg::ObstacleArray& msg) {
         // Check if there is a previous image/frame stored
         if (!gpu_prevFrame.empty()) {
             // Use iterator loop that allows safe removal of objects from vector
@@ -304,7 +307,64 @@ class ImageAnalysis : public rclcpp::Node {
         return msg;
     }
 
-    void draw(camera_scan_pkg::msg::ObstacleArray msg) {
+    camera_scan_pkg::msg::ObstacleArray TrackOpticalFlow(camera_scan_pkg::msg::ObstacleArray& msg) {
+        // Check if a previous frame exists
+        if (!gpu_prevFrame.empty()) {
+            tracked.erase(
+                std::remove_if(tracked.begin(), tracked.end(),
+                    [&](TrackedObstacle& obstacle) {
+                        // If this is the first detection, just increment count and continue
+                        if (obstacle.trackCount == 0 || obstacle.gpu_pointsMat.empty()) {
+                            obstacle.trackCount++;
+                            return false; // Keep this obstacle
+                        }
+
+                        // Conduct Optical Flow
+                        cv::cuda::GpuMat gpu_nextPts, gpu_status;
+                        opticalFlow->calc(gpu_prevFrame, gpu_frame, obstacle.gpu_pointsMat, gpu_nextPts, gpu_status);
+
+                        // Preallocate memory for downloads
+                        size_t keypoints_size = obstacle.keypoints.size();
+                        std::vector<cv::Point2f> nextPts;
+                        nextPts.reserve(keypoints_size);
+                        std::vector<unsigned char> status;
+                        status.reserve(keypoints_size);
+
+                        gpu_nextPts.download(cv::Mat(1, keypoints_size, CV_32FC2, nextPts.data()));
+                        gpu_status.download(cv::Mat(1, keypoints_size, CV_8U, status.data()));
+
+                        // Filter matched keypoints in place
+                        obstacle.keypoints.erase(
+                            std::remove_if(obstacle.keypoints.begin(), obstacle.keypoints.end(),
+                                [&](const cv::Point2f& pt, size_t i) { return status[i] == 0; }),
+                            obstacle.keypoints.end());
+
+                        // If no keypoints remain, remove this obstacle
+                        if (obstacle.keypoints.empty()) return true;
+
+                        // Update tracked obstacle variables
+                        obstacle.trackCount++;
+                        if (obstacle.trackCount >= MAX_TRACKED) {
+                            msg.tracked_obstacle = true;
+                            return true; // Remove obstacle from tracking
+                        }
+
+                        // Update GPU points only if changes occurred
+                        cv::Mat pointsMat(1, obstacle.keypoints.size(), CV_32FC2, obstacle.keypoints.data());
+                        obstacle.gpu_pointsMat.upload(pointsMat);
+
+                        return false; // Keep obstacle
+                    }),
+                tracked.end());
+        }
+
+        // Store current frame for the next optical flow calculation
+        gpu_frame.copyTo(gpu_prevFrame);
+        return msg;
+    }
+
+
+    void draw(const camera_scan_pkg::msg::ObstacleArray& msg) {
         // Draw boxes
         for (const camera_scan_pkg::msg::Obstacle& obstacle : msg.obstacles) {
             for (size_t i = 0; i < 4; ++i) {
