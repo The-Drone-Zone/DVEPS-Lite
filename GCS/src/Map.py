@@ -55,7 +55,7 @@ class Map:
 
         if self.map_name == "Commands Map":
             self.add_marker_event([self.drone.latitude, self.drone.longitude])
-            # self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
+            self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
 
     def add_marker_event(self, coords):
         if self.map_name == "Commands Map":
@@ -93,7 +93,6 @@ class Map:
         )
 
     def update_drone_marker(self, coords):
-        print(f"updating drone map: {coords}")
         if self.map_name == "Commands Map":
             if self.drone_marker:
                 self.drone_marker.delete()
@@ -142,6 +141,6 @@ class Map:
 
         if self.map_name == "Commands Map":
             self.add_marker_event([self.drone.latitude, self.drone.longitude])
-            # self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
+            self.update_drone_marker([self.drone.latitude, self.drone.longitude]) # Keep for possible later use, inaccurate with simulation
 
         self.logs.addUserLog(f"{self.map_name}: User removed all marks on the map")

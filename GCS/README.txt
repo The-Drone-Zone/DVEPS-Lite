@@ -9,6 +9,7 @@ Gazebo Sim on Jetson Info
 
 Running MavSDK_server
 - Run with command: "mavsdk_server --url udp://:14550"
+- Or for radios use: "mavsdk_server --url serial://COM3:57600"
 
 Connecting to drone via MavSDK scripts:
 - first line "drone = System(mavsdk_server_address='localhost', port=50051)"
