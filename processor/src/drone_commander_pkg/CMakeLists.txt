@@ -9,10 +9,20 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(custom_msg_pkg REQUIRED)
 
 
+add_executable(drone_commander src/DroneCommander.cpp)
+ament_target_dependencies(drone_commander
+  rclcpp
+  px4_msgs
+  custom_msg_pkg
+)
 
-ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime px4_msgs)
+install(
+  TARGETS drone_commander
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
 
-
+ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime px4_msgs custom_msg_pkg)
 ament_package()

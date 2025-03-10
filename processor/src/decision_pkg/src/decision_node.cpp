@@ -1,13 +1,17 @@
-#include <iostream>
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <iostream>
+#include <thread>
 
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
-#include "std_msgs/msg/header.hpp"
 #include "camera_scan_pkg/msg/obstacle.hpp"
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
 #include "custom_msg_pkg/msg/lidar_position.hpp"
 #include "custom_msg_pkg/msg/command.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "std_msgs/msg/header.hpp"
+
 
 class DecisionController : public rclcpp::Node {
     public:
@@ -23,13 +27,33 @@ class DecisionController : public rclcpp::Node {
             lidar_subscription_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
                 "Lidar/analysis", 10, std::bind(&DecisionController::lidarCallback, this, std::placeholders::_1));
 
-            control_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
+            command_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
+
+            // running_ = true;
+            // background_thread_ = std::thread(&DecisionController::background_loop, this);
         }
+
+        // ~DecisionController() {
+        //     running_ = false;
+        //     cv_.notify_one();  // Wake up thread to exit cleanly
+        //     if (background_thread_.joinable()) {
+        //         background_thread_.join();
+        //     }
+        // }
+
+
     private:
         rclcpp::Subscription<camera_scan_pkg::msg::ObstacleArray>::SharedPtr image_subscription_;
         rclcpp::Subscription<custom_msg_pkg::msg::LidarPosition>::SharedPtr lidar_subscription_;
-        rclcpp::Publisher<custom_msg_pkg::msg::Control>::SharedPtr control_publisher_;
-        bool temp_bool = true;
+        rclcpp::Publisher<custom_msg_pkg::msg::Command>::SharedPtr command_publisher_;
+
+        // std::thread background_thread_;
+        // std::mutex mutex_;
+        // std::condition_variable cv_;
+        // std::atomic<bool> running_;
+        // bool keep_turning_ = false;
+        bool keep_stop_ = true;
+
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
             // Start time
@@ -38,13 +62,23 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
             //printImageObstacles(msg);
-            if(temp_bool) {
-                if(msg->obstacles.size() > 8) {
+            // std::lock_guard<std::mutex> lock(mutex_);
+            if(msg->obstacles.size() > 8) {
+                if(keep_stop_)
+                {
                     RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                     publish_control_command(custom_msg_pkg::msg::Command::STOP);
-                    temp_bool = false;
+                    // keep_turning_ = true;
+                    // RCLCPP_INFO(this->get_logger(), "Notifying background thread to send TURN command...");
+                    // cv_.notify_one();
+                    // RCLCPP_INFO(this->get_logger(), "Notifying background thread to send TURN command...");
+                    keep_stop_ = false;
                 }
             }
+            // else 
+            // {
+            //     keep_turning_ = false;
+            // }
             
 
             // Image to LiDAR map function call goes here
@@ -54,10 +88,10 @@ class DecisionController : public rclcpp::Node {
             // Compute duration
             std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds >(end - start);
             // Print analysis time
-            RCLCPP_INFO(this->get_logger(), "Decision Time: %ld ms", duration_ms.count());
+            // RCLCPP_INFO(this->get_logger(), "Decision Time: %ld ms", duration_ms.count());
             time_sum += duration_ms.count();
             counter += 1;
-            RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
+            // RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
         void lidarCallback(const custom_msg_pkg::msg::LidarPosition::SharedPtr msg) {
@@ -79,10 +113,38 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
-        void publish_control_command(const custom_msg_pkg::msg::Command &command) {
-            custom_msg_pkg::msg::Control control_msg;
-            control_msg.command = command;
-            control_publisher->publish(control_msg);
+        // void background_loop() {
+        //     RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP");
+        //     while (running_) {
+        //         std::unique_lock<std::mutex> lock(mutex_);
+        //         RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP 2");
+        //         cv_.wait(lock, [this] { return keep_turning_ || !running_; }); //loop does not run untill told to do so
+        //         RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP 3");
+        //         if (!running_) {
+        //             break;
+        //         }
+                
+        //         while (keep_turning_ && running_) {
+        //             RCLCPP_INFO(this->get_logger(), "TURN TURN TURN");
+        //             publish_control_command(custom_msg_pkg::msg::Command::TURN, 90.0);
+        //             lock.unlock();
+        //             std::this_thread::sleep_for(std::chrono::seconds(1));
+        //             lock.lock();
+        //         }
+        //     }
+        // }
+
+        void publish_control_command(const int32_t &in_command, int turn_degree) {
+            custom_msg_pkg::msg::Command command_msg;
+            command_msg.command = in_command;
+            command_msg.turn_deg = turn_degree;
+            command_publisher_->publish(command_msg);
+        }
+
+        void publish_control_command(const int32_t &in_command) {
+            custom_msg_pkg::msg::Command command_msg;
+            command_msg.command = in_command;
+            command_publisher_->publish(command_msg);
         }
 
         void printImageObstacles(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
