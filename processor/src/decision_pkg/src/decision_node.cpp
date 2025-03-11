@@ -24,35 +24,29 @@ class DecisionController : public rclcpp::Node {
                 "output_obstacles", 10, std::bind(&DecisionController::imageCallback, this, std::placeholders::_1));
             
             // Create Subscriber to LiDAR Analysis
-            lidar_subscription_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
+            command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
                 "Lidar/analysis", 10, std::bind(&DecisionController::lidarCallback, this, std::placeholders::_1));
 
             command_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
+            command_ack_subscriber_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
 
-            // running_ = true;
-            // background_thread_ = std::thread(&DecisionController::background_loop, this);
+            find_path_thread = std::thread(&DecisionController::find_path, this);
+
         }
-
-        // ~DecisionController() {
-        //     running_ = false;
-        //     cv_.notify_one();  // Wake up thread to exit cleanly
-        //     if (background_thread_.joinable()) {
-        //         background_thread_.join();
-        //     }
-        // }
 
 
     private:
+        rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Subscription<camera_scan_pkg::msg::ObstacleArray>::SharedPtr image_subscription_;
         rclcpp::Subscription<custom_msg_pkg::msg::LidarPosition>::SharedPtr lidar_subscription_;
         rclcpp::Publisher<custom_msg_pkg::msg::Command>::SharedPtr command_publisher_;
+        rclcpp::Subscription<custom_msg_pkg::msg::Command>::SharedPtr command_ack_subscrption_;
 
-        // std::thread background_thread_;
-        // std::mutex mutex_;
-        // std::condition_variable cv_;
-        // std::atomic<bool> running_;
-        // bool keep_turning_ = false;
-        bool keep_stop_ = true;
+        std::thread find_path_thread;
+
+
+        int decision_mode = 0;
+        bool outstanding_ack= false;
 
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
@@ -62,23 +56,13 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
             //printImageObstacles(msg);
-            // std::lock_guard<std::mutex> lock(mutex_);
-            if(msg->obstacles.size() > 8) {
-                if(keep_stop_)
-                {
-                    RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
-                    publish_control_command(custom_msg_pkg::msg::Command::STOP);
-                    // keep_turning_ = true;
-                    // RCLCPP_INFO(this->get_logger(), "Notifying background thread to send TURN command...");
-                    // cv_.notify_one();
-                    // RCLCPP_INFO(this->get_logger(), "Notifying background thread to send TURN command...");
-                    keep_stop_ = false;
-                }
+
+
+            if(msg->obstacles.size() > 8 && decision_mode == 0) {
+                
+                RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
+                publish_control_command(custom_msg_pkg::msg::Command::STOP);
             }
-            // else 
-            // {
-            //     keep_turning_ = false;
-            // }
             
 
             // Image to LiDAR map function call goes here
@@ -113,32 +97,58 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
-        // void background_loop() {
-        //     RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP");
-        //     while (running_) {
-        //         std::unique_lock<std::mutex> lock(mutex_);
-        //         RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP 2");
-        //         cv_.wait(lock, [this] { return keep_turning_ || !running_; }); //loop does not run untill told to do so
-        //         RCLCPP_INFO(this->get_logger(), "BACKGROUND LOOP 3");
-        //         if (!running_) {
-        //             break;
-        //         }
-                
-        //         while (keep_turning_ && running_) {
-        //             RCLCPP_INFO(this->get_logger(), "TURN TURN TURN");
-        //             publish_control_command(custom_msg_pkg::msg::Command::TURN, 90.0);
-        //             lock.unlock();
-        //             std::this_thread::sleep_for(std::chrono::seconds(1));
-        //             lock.lock();
-        //         }
-        //     }
-        // }
 
-        void publish_control_command(const int32_t &in_command, int turn_degree) {
-            custom_msg_pkg::msg::Command command_msg;
-            command_msg.command = in_command;
-            command_msg.turn_deg = turn_degree;
-            command_publisher_->publish(command_msg);
+        void command_ack_subscrption_(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
+            if(msg->result == 0) {
+                switch(msg->command) {
+                    case custom_msg_pkg::msg::Command::STOP:
+                        RCLCPP_INFO(this->get_logger(), "Vehicle Stopped");
+                        decision_mode = 1;
+                        break;
+                    case custom_msg_pkg::msg::Command::TURN:
+                        RCLCPP_INFO(this->get_logger(), "Vehicle Turned");
+                        decision_mode = 2;
+                        break;
+                    case custom_msg_pkg::msg::Command::FORWARD:
+                        RCLCPP_INFO(this->get_logger(), "Vehicle Moved Forward");
+                        decision_mode = 3;
+                        break;
+                    case custom_msg_pkg::msg::Command::DEFAULT:
+                        RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
+                        decision_mode = 0;
+                        break;
+                    default:
+                        RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
+                        break;
+                }
+                RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
+            }
+            else {
+                RCLCPP_INFO(this->get_logger(), "Vehicle command failed");
+            }
+        }
+
+        void find_path() {
+            while(rclcpp::ok()) {
+                if(decision_mode == 1) {
+                    RCLCPP_INFO(this->get_logger(), "Finding Path / Turnning Drone");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // for test only making sure drone stops appropriatly. 
+                    publish_control_command(custom_msg_pkg::msg::Command::TURN);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
+                    // decision_mode = 2; commented for test also proabbly should just delte.
+                }
+                else if(decision_mode == 2) {
+                    RCLCPP_INFO(this->get_logger(), "Stopping Turn / Moving Forward");
+                    publish_control_command(custom_msg_pkg::msg::Command::FORWARD);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
+                    decision_mode = 3;
+                }
+                else if (decision_mode == 3) {
+                    RCLCPP_INFO(this->get_logger(), "Resume Normal Operation");
+                    publish_control_command(custom_msg_pkg::msg::Command::DEFAULT);
+                    decision_mode = 0;
+                }
+            }
         }
 
         void publish_control_command(const int32_t &in_command) {
