@@ -8,6 +8,7 @@
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
 #include "custom_msg_pkg/msg/lidar_position.hpp"
 #include "custom_msg_pkg/msg/command.hpp"
+#include "custom_msg_pkg/msg/command_ack.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "std_msgs/msg/header.hpp"
@@ -24,11 +25,11 @@ class DecisionController : public rclcpp::Node {
                 "output_obstacles", 10, std::bind(&DecisionController::imageCallback, this, std::placeholders::_1));
             
             // Create Subscriber to LiDAR Analysis
-            command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
+            lidar_subscription_ = this->create_subscription<custom_msg_pkg::msg::LidarPosition>(
                 "Lidar/analysis", 10, std::bind(&DecisionController::lidarCallback, this, std::placeholders::_1));
 
             command_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
-            command_ack_subscriber_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
+            command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
 
             find_path_thread = std::thread(&DecisionController::find_path, this);
 
@@ -40,7 +41,7 @@ class DecisionController : public rclcpp::Node {
         rclcpp::Subscription<camera_scan_pkg::msg::ObstacleArray>::SharedPtr image_subscription_;
         rclcpp::Subscription<custom_msg_pkg::msg::LidarPosition>::SharedPtr lidar_subscription_;
         rclcpp::Publisher<custom_msg_pkg::msg::Command>::SharedPtr command_publisher_;
-        rclcpp::Subscription<custom_msg_pkg::msg::Command>::SharedPtr command_ack_subscrption_;
+        rclcpp::Subscription<custom_msg_pkg::msg::CommandAck>::SharedPtr command_ack_subscrption_;
 
         std::thread find_path_thread;
 
@@ -98,7 +99,7 @@ class DecisionController : public rclcpp::Node {
         }
 
 
-        void command_ack_subscrption_(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
+        void command_ack_callback(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
             if(msg->result == 0) {
                 switch(msg->command) {
                     case custom_msg_pkg::msg::Command::STOP:

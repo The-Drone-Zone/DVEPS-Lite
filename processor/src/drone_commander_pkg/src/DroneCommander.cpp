@@ -1,11 +1,13 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
-#include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/vehicle_command_ack.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "custom_msg_pkg/msg/command.hpp"
+#include "custom_msg_pkg/msg/command_ack.hpp"
+
 
 
 #include <stdint.h>
@@ -79,6 +81,7 @@ class DroneCommander : public rclcpp::Node
 
         float current_pos_[3] = {0.0, 0.0, 0.0};
         float current_velocity_[3] = {0.0, 0.0, 0.0};
+        float current_yaw_ = 0.0;
 
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
@@ -125,6 +128,7 @@ class DroneCommander : public rclcpp::Node
                 // Initialize yaw_angle only once, using the latest yaw reading
                 if (!initialized) {
                     yaw_angle = current_yaw_;
+                    RCLCPP_INFO(this->get_logger(), "Current yaw: %.2f degrees", current_yaw_ * (180.0 / M_PI));
                     initialized = true;
                 }
 
@@ -135,7 +139,7 @@ class DroneCommander : public rclcpp::Node
                 trajectory_setpoint_msg.position[2] = current_pos_[2];
                 trajectory_setpoint_msg.yaw = yaw_angle;
 
-
+                publishOffboardCtlMsg();
                 trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
 
                 RCLCPP_INFO(this->get_logger(), "Yaw Command Sent: %.2f degrees", yaw_angle * (180.0 / M_PI));
@@ -156,6 +160,7 @@ class DroneCommander : public rclcpp::Node
                         increasing = true;
                     }
                 }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
             else if (forward_flag_){
                 auto trajectory_setpoint_msg = TrajectorySetpoint();
@@ -190,7 +195,7 @@ class DroneCommander : public rclcpp::Node
             current_velocity_[0] = msg->velocity[0];  // Velocity in the X direction
             current_velocity_[1] = msg->velocity[1];  // Velocity in the Y direction
             current_velocity_[2] = msg->velocity[2];
-            RCLCPP_INFO(this->get_logger(), "Current velocity: X: %.2f, Y: %.2f, Z: %.2f", current_velocity_[0], current_velocity_[1], current_velocity_[2]);
+            // RCLCPP_INFO(this->get_logger(), "Current velocity: X: %.2f, Y: %.2f, Z: %.2f", current_velocity_[0], current_velocity_[1], current_velocity_[2]);
 
         }
 
@@ -198,13 +203,14 @@ class DroneCommander : public rclcpp::Node
         void vehicle_command_ack_callback(const px4_msgs::msg::VehicleCommandAck::SharedPtr msg) {
             if(msg->result == 0) {
                 switch(msg->command) {
-                    case VehicleCommand::VEHICLE_CMD_DO_SET_MODE:
+                    case VehicleCommand::VEHICLE_CMD_DO_SET_MODE: { //braces are because i declare a varible inside case statement
                         RCLCPP_INFO(this->get_logger(), "Vehicle mode set");
-                        auto msg = custom_msg_pkg::msg::CommandAck();
-                        msg.command = last_command_recieved;
-                        msg.result = 0;
-                        command_ack_publisher_->publish(msg);
+                        custom_msg_pkg::msg::CommandAck msg_ack;
+                        msg_ack.command = last_command_recieved;
+                        msg_ack.result = 0;
+                        command_ack_publisher_->publish(msg_ack);
                         break;
+                    }
                     default:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
                         break;
@@ -219,7 +225,7 @@ class DroneCommander : public rclcpp::Node
 
         void publish_vehicle_command(uint16_t command, float param1 = 0.0, float param2 = 0.0, float param3 = 0.0)
         {
-            auto pause_msg = px4_msgs::msg::VehicleCommand();
+            auto msg = px4_msgs::msg::VehicleCommand();
             msg.command = command;
             msg.param1 = param1;
             msg.param2 = param2;
@@ -234,7 +240,7 @@ class DroneCommander : public rclcpp::Node
             vehicle_command_publisher_->publish(msg);
         }
 
-        publishOffboardCtlMsg() {
+        void publishOffboardCtlMsg() {
             auto offboard_control_mode_msg = OffboardControlMode();
             offboard_control_mode_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
             offboard_control_mode_msg.position = true;
@@ -245,7 +251,7 @@ class DroneCommander : public rclcpp::Node
             offboard_control_mode_publisher_->publish(offboard_control_mode_msg);
         }
 
-        publishTrajectorySetpoint() {
+        void publishTrajectorySetpoint() {
             auto trajectory_setpoint_msg = TrajectorySetpoint();
             trajectory_setpoint_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
             trajectory_setpoint_msg.position = {0.0, 0.0, 0.0};
@@ -254,14 +260,14 @@ class DroneCommander : public rclcpp::Node
         }
 
 
-        command_offboard_control_mode() {
+        void command_offboard_control_mode() {
             int offboard_setpoint_counter = 0;
             if (offboard_setpoint_counter == 10) {
                 this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
             }
 
             //what is inside of these should not matter onyy needed inorder to command the vehicle into this mode.
-            publish_offboard_control_mode();
+            publishOffboardCtlMsg();
             publishTrajectorySetpoint();
 
             if (offboard_setpoint_counter < 11) {
