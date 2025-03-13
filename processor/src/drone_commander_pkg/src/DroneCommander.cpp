@@ -93,10 +93,10 @@ class DroneCommander : public rclcpp::Node
                     turn_flag_ = false;
                     forward_flag_ = false;
                     break;
-                case custom_msg_pkg::msg::Command::TURN:
+                case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d", msg->command);
                     turn_flag_ = true;
-                    command_offboard_control_mode();
+                    //command_offboard_control_mode();
                     //no ack so forward will not happen yet
                     break;
                 case custom_msg_pkg::msg::Command::FORWARD:
@@ -121,59 +121,61 @@ class DroneCommander : public rclcpp::Node
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
             else if (turn_flag_){
-                static bool initialized = false;  // Tracks if yaw_angle has been set
-                static float yaw_angle;           // Static variable to store yaw
-                static bool increasing = true;     // Direction of rotation
+                publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
 
-                // Initialize yaw_angle only once, using the latest yaw reading
-                if (!initialized) {
-                    yaw_angle = current_yaw_;
-                    RCLCPP_INFO(this->get_logger(), "Current yaw: %.2f degrees", current_yaw_ * (180.0 / M_PI));
-                    initialized = true;
-                }
+                // static bool initialized = false;  // Tracks if yaw_angle has been set
+                // static float yaw_angle;           // Static variable to store yaw
+                // static bool increasing = true;     // Direction of rotation
 
-                // Publish the yaw setpoint
-                auto trajectory_setpoint_msg = TrajectorySetpoint();
-                trajectory_setpoint_msg.position[0] = current_pos_[0];  // Hold position
-                trajectory_setpoint_msg.position[1] = current_pos_[1];
-                trajectory_setpoint_msg.position[2] = current_pos_[2];
-                trajectory_setpoint_msg.yaw = yaw_angle;
+                // // Initialize yaw_angle only once, using the latest yaw reading
+                // if (!initialized) {
+                //     yaw_angle = current_yaw_;
+                //     RCLCPP_INFO(this->get_logger(), "Current yaw: %.2f degrees", current_yaw_ * (180.0 / M_PI));
+                //     initialized = true;
+                // }
 
-                publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
+                // // Publish the yaw setpoint
+                // auto trajectory_setpoint_msg = TrajectorySetpoint();
+                // trajectory_setpoint_msg.position[0] = current_pos_[0];  // Hold position
+                // trajectory_setpoint_msg.position[1] = current_pos_[1];
+                // trajectory_setpoint_msg.position[2] = current_pos_[2];
+                // trajectory_setpoint_msg.yaw = -3.14;//yaw_angle;
 
-                RCLCPP_INFO(this->get_logger(), "Yaw Command Sent: %.2f degrees", yaw_angle * (180.0 / M_PI));
+                // publishOffboardCtlMsg();
+                // trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
+
+                // RCLCPP_INFO(this->get_logger(), "Yaw Command Sent: %.2f degrees", -3.14 * (180.0 / M_PI));
 
                 // Define oscillation range
-                float max_yaw = current_yaw_ + (M_PI / 2);  // +90 degrees
-                float min_yaw = current_yaw_ - (M_PI / 2);  // -90 degrees
+                // float max_yaw = current_yaw_ + (M_PI / 2);  // +90 degrees
+                // float min_yaw = current_yaw_ - (M_PI / 2);  // -90 degrees
 
-                // Adjust yaw for next function call
-                if (increasing) {
-                    yaw_angle += 5.0 * (M_PI / 180.0);  // Rotate clockwise
-                    if (yaw_angle >= max_yaw) {  // Reverse direction at +90°
-                        increasing = false;
-                    }
-                } else {
-                    yaw_angle -= 5.0 * (M_PI / 180.0);  // Rotate counterclockwise
-                    if (yaw_angle <= min_yaw) {  // Reverse direction at -90°
-                        increasing = true;
-                    }
-                }
+                // // Adjust yaw for next function call
+                // if (increasing) {
+                //     yaw_angle += 5.0 * (M_PI / 180.0);  // Rotate clockwise
+                //     if (yaw_angle >= max_yaw) {  // Reverse direction at +90°
+                //         increasing = false;
+                //     }
+                // } else {
+                //     yaw_angle -= 5.0 * (M_PI / 180.0);  // Rotate counterclockwise
+                //     if (yaw_angle <= min_yaw) {  // Reverse direction at -90°
+                //         increasing = true;
+                //     }
+                // }
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
-            else if (forward_flag_){
-                auto trajectory_setpoint_msg = TrajectorySetpoint();
-                trajectory_setpoint_msg.position[0] = current_pos_[0] + 5.0;  // Move forward 5 meters
-                trajectory_setpoint_msg.position[1] = current_pos_[1];
-                trajectory_setpoint_msg.position[2] = current_pos_[2];
-                trajectory_setpoint_msg.yaw = current_yaw_;
+            // else if (forward_flag_){
+            //     auto trajectory_setpoint_msg = TrajectorySetpoint();
+            //     trajectory_setpoint_msg.position[0] = current_pos_[0] + 5.0;  // Move forward 5 meters
+            //     trajectory_setpoint_msg.position[1] = current_pos_[1];
+            //     trajectory_setpoint_msg.position[2] = current_pos_[2];
+            //     trajectory_setpoint_msg.yaw = current_yaw_;
 
-                publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
+            //     publishOffboardCtlMsg();
+            //     trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
 
-                RCLCPP_INFO(this->get_logger(), "Forward Command Sent: %.2f meters", trajectory_setpoint_msg.position[0]);
-            }
+            //     RCLCPP_INFO(this->get_logger(), "Forward Command Sent: %.2f meters", trajectory_setpoint_msg.position[0]);
+            // }
         }
 
 
@@ -262,17 +264,22 @@ class DroneCommander : public rclcpp::Node
 
         void command_offboard_control_mode() {
             int offboard_setpoint_counter = 0;
-            if (offboard_setpoint_counter == 10) {
-                this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
-            }
 
-            //what is inside of these should not matter onyy needed inorder to command the vehicle into this mode.
-            publishOffboardCtlMsg();
-            publishTrajectorySetpoint();
-
-            if (offboard_setpoint_counter < 11) {
-                offboard_setpoint_counter++;
+            for(int i = 0; i <= 10; ++i){
+                if (offboard_setpoint_counter == 10) {
+                    this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+                    break;
+                }
+    
+                //what is inside of these should not matter onyy needed inorder to command the vehicle into this mode.
+                publishOffboardCtlMsg();
+                publishTrajectorySetpoint();
+    
+                if (offboard_setpoint_counter < 11) {
+                    offboard_setpoint_counter++;
+                }
             }
+            
         }
 };
 

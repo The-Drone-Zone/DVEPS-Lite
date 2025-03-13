@@ -133,7 +133,7 @@ class DecisionController : public rclcpp::Node {
             while(rclcpp::ok()) {
                 if(decision_mode == 1) {
                     RCLCPP_INFO(this->get_logger(), "Finding Path / Turnning Drone");
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // for test only making sure drone stops appropriatly. 
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10000)); // for test only making sure drone stops appropriatly. 
                     publish_control_command(custom_msg_pkg::msg::Command::TURN);
                     std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
                     // decision_mode = 2; commented for test also proabbly should just delte.
