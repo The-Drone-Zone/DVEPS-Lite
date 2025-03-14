@@ -232,7 +232,7 @@ class RPlidarNode : public rclcpp::Node {
             }
 
             if (read_value == 0.0)
-                scan_msg->ranges[apply_index] = std::numeric_limits<float>::infinity();
+                scan_msg->ranges[apply_index] = std::numeric_limits<float>::infinity(); //change this to zero possibly
             else
                 scan_msg->ranges[apply_index] = read_value;
             scan_msg->intensities[apply_index] = (float)(nodes[apply_index].quality >> 2);
