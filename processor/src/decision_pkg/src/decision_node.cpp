@@ -54,6 +54,14 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
 
             // Image to LiDAR map function call goes here
+            if(msg->stop) {
+                RCLCPP_INFO(this->get_logger(), "STOPPING");
+                //my drone command PR needs to pushed to dev before I pull in changes here.
+            }
+
+            //PROCESS XYZ COORDINATE MAPPING HERE MAYBE
+
+            //NEED TO HAVE THE DRONE COMMAND PUSHED IN ORDER TO USE the current location functionality.
 
             // End time
             auto end = std::chrono::high_resolution_clock::now();
