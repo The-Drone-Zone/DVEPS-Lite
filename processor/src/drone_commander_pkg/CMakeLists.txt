@@ -11,6 +11,8 @@ find_package(px4_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(custom_msg_pkg REQUIRED)
 find_package(pos_pkg REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
 
 
 add_executable(drone_commander src/DroneCommander.cpp)
@@ -19,6 +21,7 @@ ament_target_dependencies(drone_commander
   px4_msgs
   custom_msg_pkg
   pos_pkg
+  geometry_msgs
 )
 
 install(

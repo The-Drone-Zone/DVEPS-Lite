@@ -15,7 +15,7 @@ class PositionControl : public rclcpp::Node {
 public:
     PositionControl();
 
-    void turnByAngle(float angle_degrees);
+    px4_msgs::msg::TrajectorySetpoint turnByAngle(float angle_degrees);
     float getCurrentHeading();
     px4_msgs::msg::VehicleLocalPosition getLocalPosition();
 
