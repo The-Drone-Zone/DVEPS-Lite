@@ -9,7 +9,7 @@
 #include "custom_msg_pkg/msg/command_ack.hpp"
 
 
-
+#include <pos_pkg/PosFunctions.hpp>
 #include <stdint.h>
 #include <chrono>
 #include <iostream>
@@ -37,30 +37,16 @@ class DroneCommander : public rclcpp::Node
             //This is needed for all telemetry we want from the drone. must follow this way of subscribing. found in px4 documentation
             rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 		    auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
-            position_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position", qos, std::bind(&DroneCommander::positionCallback, this, std::placeholders::_1));
-            odometry_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>("/fmu/out/vehicle_odometry", qos, std::bind(&DroneCommander::odometry_callback, this, std::placeholders::_1));
             vehicle_command_ack_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleCommandAck>("/fmu/out/vehicle_command_ack", qos, std::bind(&DroneCommander::vehicle_command_ack_callback, this, std::placeholders::_1));
 
             timer_ = this->create_wall_timer(500ms, std::bind(&DroneCommander::commanderCallback, this));
             offboard_setpoint_counter_ = 0;
         }
 
-        void arm()
-        {
-            publish_vehicle_command(VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0);
-
-            RCLCPP_INFO(this->get_logger(), "Arm command send");
-        }
-
-        void disarm()
-        {
-            publish_vehicle_command(VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0);
-
-            RCLCPP_INFO(this->get_logger(), "Disarm command send");
-        }
-
     private:
         int offboard_setpoint_counter_;
+        PositionControl position_control_;
+
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
         rclcpp::Publisher<TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
@@ -68,8 +54,6 @@ class DroneCommander : public rclcpp::Node
         rclcpp::Publisher<custom_msg_pkg::msg::CommandAck>::SharedPtr command_ack_publisher_;
 
         rclcpp::Subscription<custom_msg_pkg::msg::Command>::SharedPtr decision_command_subscriber_;
-        rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr position_subscriber_;
-        rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_subscriber_;
         rclcpp::Subscription<px4_msgs::msg::VehicleCommandAck>::SharedPtr vehicle_command_ack_subscriber_;
 
         bool stop_flag_ = false;
@@ -78,10 +62,6 @@ class DroneCommander : public rclcpp::Node
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
         int last_command_recieved = -1;
-
-        float current_pos_[3] = {0.0, 0.0, 0.0};
-        float current_velocity_[3] = {0.0, 0.0, 0.0};
-        float current_yaw_ = 0.0;
 
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
@@ -121,47 +101,10 @@ class DroneCommander : public rclcpp::Node
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
             else if (turn_flag_){
-                publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
+                //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
+                command_offboard_control_mode();
+                position_control_.turnByAngle(45.0);
 
-                // static bool initialized = false;  // Tracks if yaw_angle has been set
-                // static float yaw_angle;           // Static variable to store yaw
-                // static bool increasing = true;     // Direction of rotation
-
-                // // Initialize yaw_angle only once, using the latest yaw reading
-                // if (!initialized) {
-                //     yaw_angle = current_yaw_;
-                //     RCLCPP_INFO(this->get_logger(), "Current yaw: %.2f degrees", current_yaw_ * (180.0 / M_PI));
-                //     initialized = true;
-                // }
-
-                // // Publish the yaw setpoint
-                // auto trajectory_setpoint_msg = TrajectorySetpoint();
-                // trajectory_setpoint_msg.position[0] = current_pos_[0];  // Hold position
-                // trajectory_setpoint_msg.position[1] = current_pos_[1];
-                // trajectory_setpoint_msg.position[2] = current_pos_[2];
-                // trajectory_setpoint_msg.yaw = -3.14;//yaw_angle;
-
-                // publishOffboardCtlMsg();
-                // trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
-
-                // RCLCPP_INFO(this->get_logger(), "Yaw Command Sent: %.2f degrees", -3.14 * (180.0 / M_PI));
-
-                // Define oscillation range
-                // float max_yaw = current_yaw_ + (M_PI / 2);  // +90 degrees
-                // float min_yaw = current_yaw_ - (M_PI / 2);  // -90 degrees
-
-                // // Adjust yaw for next function call
-                // if (increasing) {
-                //     yaw_angle += 5.0 * (M_PI / 180.0);  // Rotate clockwise
-                //     if (yaw_angle >= max_yaw) {  // Reverse direction at +90°
-                //         increasing = false;
-                //     }
-                // } else {
-                //     yaw_angle -= 5.0 * (M_PI / 180.0);  // Rotate counterclockwise
-                //     if (yaw_angle <= min_yaw) {  // Reverse direction at -90°
-                //         increasing = true;
-                //     }
-                // }
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
             // else if (forward_flag_){
@@ -176,29 +119,6 @@ class DroneCommander : public rclcpp::Node
 
             //     RCLCPP_INFO(this->get_logger(), "Forward Command Sent: %.2f meters", trajectory_setpoint_msg.position[0]);
             // }
-        }
-
-
-        void positionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
-        {
-
-            current_pos_[0] = msg->x;  // North (m)
-            current_pos_[1] = msg->y;  // East (m)
-            current_pos_[2] = msg->z;  // Down (m)
-
-            //RCLCPP_INFO(this->get_logger(), "Current position: X: %.2f, Y: %.2f, Z: %.2f", current_pos_[0], current_pos_[1], current_pos_[2]);
-        }
-
-
-        void odometry_callback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
-            current_yaw_ = atan2(2.0 * (msg->q[3] * msg->q[2] + msg->q[0] * msg->q[1]),
-                                 1.0 - 2.0 * (msg->q[1] * msg->q[1] + msg->q[2] * msg->q[2]));
-
-            current_velocity_[0] = msg->velocity[0];  // Velocity in the X direction
-            current_velocity_[1] = msg->velocity[1];  // Velocity in the Y direction
-            current_velocity_[2] = msg->velocity[2];
-            // RCLCPP_INFO(this->get_logger(), "Current velocity: X: %.2f, Y: %.2f, Z: %.2f", current_velocity_[0], current_velocity_[1], current_velocity_[2]);
-
         }
 
 

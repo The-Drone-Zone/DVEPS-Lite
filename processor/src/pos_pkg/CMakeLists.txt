@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(drone_commander_pkg)
+project(pos_pkg)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -9,22 +9,21 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(custom_msg_pkg REQUIRED)
-find_package(pos_pkg REQUIRED)
 
+include_directories(
+  include
+)
 
-add_executable(drone_commander src/DroneCommander.cpp)
-ament_target_dependencies(drone_commander
+add_executable(position_monitor src/PosFunctions.cpp)
+ament_target_dependencies(position_monitor
   rclcpp
   px4_msgs
-  custom_msg_pkg
-  pos_pkg
 )
 
 install(
-  TARGETS drone_commander
+  TARGETS position_monitor
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime px4_msgs custom_msg_pkg pos_pkg)
+ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime px4_msgs)
 ament_package()

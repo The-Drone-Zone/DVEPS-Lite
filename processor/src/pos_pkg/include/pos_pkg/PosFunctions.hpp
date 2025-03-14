@@ -1,0 +1,40 @@
+#ifndef POSITION_CONTROL_H
+#define POSITION_CONTROL_H
+
+#include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/vehicle_global_position.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
+#include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/trajectory_setpoint.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <cmath>
+#include <chrono>
+#include <thread>
+
+class PositionControl : public rclcpp::Node {
+public:
+    PositionControl();
+
+    void turnByAngle(float angle_degrees);
+    float getCurrentHeading();
+    px4_msgs::msg::VehicleLocalPosition getLocalPosition();
+
+private:
+    void positionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg);
+    void odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg);
+    void globalPositionCallback(const px4_msgs::msg::VehicleGlobalPosition::SharedPtr msg);
+    void initFrame();
+
+    px4_msgs::msg::VehicleOdometry current_odometry_;
+    px4_msgs::msg::VehicleLocalPosition current_local_position_;
+    px4_msgs::msg::VehicleGlobalPosition current_global_position_;
+    geometry_msgs::msg::Point local_offset_pose_;
+    float current_heading_;
+    float local_offset_;
+
+    rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr position_subscriber_;
+    rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_subscriber_;
+    rclcpp::Subscription<px4_msgs::msg::VehicleGlobalPosition>::SharedPtr global_position_subscriber_;
+};
+
+#endif // POSITION_CONTROL_H
