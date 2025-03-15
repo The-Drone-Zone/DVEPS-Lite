@@ -52,11 +52,6 @@ class CommandScreen:
 
         self.video_frame_width = self.video_frame.winfo_width()
         self.video_frame_height = self.video_frame.winfo_height()
-
-        # while self.video_frame.winfo_width() < 10 and self.video_frame.winfo_height() < 10:
-        #     self.video_frame_width = self.video_frame.winfo_width()
-        #     self.video_frame_height = self.video_frame.winfo_height()    
-        #     print(self.video_frame_width, self.video_frame_height) 
         self.create_video_display()
         self.update_video()
         ###############################################################################
@@ -125,8 +120,8 @@ class CommandScreen:
     def create_frames(self):
 
         # grid_row/column configure ensures row or column fills available space with equal weight
-        self.command_tab.grid_rowconfigure(0, weight=1)
-        self.command_tab.grid_rowconfigure(1, weight=1)
+        self.command_tab.grid_rowconfigure(0, weight=3)
+        self.command_tab.grid_rowconfigure(1, weight=2)
         self.command_tab.grid_columnconfigure(0, weight=1)
         self.command_tab.grid_columnconfigure(1, weight=1)
 
