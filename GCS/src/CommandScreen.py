@@ -1,9 +1,11 @@
+import cv2
 import os
 import sys
 import tkinter as tk
-from Map import Map
-from LogWindow import LoggingWindow
 from Drone import Drone
+from LogWindow import LoggingWindow
+from Map import Map
+from PIL import Image, ImageTk
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -39,11 +41,24 @@ class CommandScreen:
 
         # major command frames
         self.video_frame: tk.Frame = None
+        self.video_frame_width = None
+        self.video_frame_height = None
+
         self.lidar_frame: tk.Frame = None
         self.map_frame: tk.Frame = None
         self.commands_frame: tk.Frame = None
+        self.cap = cv2.VideoCapture(2)
         self.create_frames()
 
+        self.video_frame_width = self.video_frame.winfo_width()
+        self.video_frame_height = self.video_frame.winfo_height()
+
+        # while self.video_frame.winfo_width() < 10 and self.video_frame.winfo_height() < 10:
+        #     self.video_frame_width = self.video_frame.winfo_width()
+        #     self.video_frame_height = self.video_frame.winfo_height()    
+        #     print(self.video_frame_width, self.video_frame_height) 
+        self.create_video_display()
+        self.update_video()
         ###############################################################################
         ###############################################################################
         # These variables are for the Command Frame
@@ -110,8 +125,8 @@ class CommandScreen:
     def create_frames(self):
 
         # grid_row/column configure ensures row or column fills available space with equal weight
-        self.command_tab.grid_rowconfigure(0, weight=3)
-        self.command_tab.grid_rowconfigure(1, weight=2)
+        self.command_tab.grid_rowconfigure(0, weight=1)
+        self.command_tab.grid_rowconfigure(1, weight=1)
         self.command_tab.grid_columnconfigure(0, weight=1)
         self.command_tab.grid_columnconfigure(1, weight=1)
 
@@ -235,7 +250,8 @@ class CommandScreen:
         self.frame_wrapper.add_to_window(
             self.commands_frame, row=1, column=1, sticky="nsew"
         )
-
+        self.video_frame.config(width=400, height=300)
+        # self.update_video()
         this_button.destroy()  # button destorys itself when pressed
 
         self.logs.addUserLog("User minimized a view in the command tab")
@@ -247,3 +263,29 @@ class CommandScreen:
             self.drone_connection_label.config(text="Drone Connected")
         else:
             self.drone_connection_label.config(text="Drone Not Connected")
+
+    def create_video_display(self):
+        self.video_label = tk.Label(self.video_frame)
+        #self.video_label.pack(fill="none")
+        self.video_label.grid(row=0, column=0, sticky="nsew")  # Use grid() instead of pack()
+        # self.video_frame.grid_rowconfigure(0, weight=1)  # Allow the row to expand but not the widget itself
+        # self.video_frame.grid_columnconfigure(0, weight=1)  # Allow the column to expand but not the widget itself
+
+
+    def update_video(self):
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            frame_width = self.video_frame.winfo_width()
+            frame_height = self.video_frame.winfo_height()
+            # print(frame_width, frame_height)
+            frame = cv2.resize(frame, (frame_width, frame_height))
+
+            img = Image.fromarray(frame)
+            imgtk = ImageTk.PhotoImage(image=img)
+
+            self.video_label.imgtk = imgtk
+            self.video_label.config(image=imgtk)
+
+        self.video_label.after(10, self.update_video) #run every 10ms
