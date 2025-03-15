@@ -45,7 +45,8 @@ class DroneCommander : public rclcpp::Node
 
     private:
         int offboard_setpoint_counter_;
-        PositionControl position_control_;
+        //PositionControl position_control_;
+        auto position_control = std::make_shared<PositionControl>();
 
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
@@ -68,19 +69,19 @@ class DroneCommander : public rclcpp::Node
             last_command_recieved = msg->command;
             switch(msg->command) {
                 case custom_msg_pkg::msg::Command::STOP:
-                    RCLCPP_INFO(this->get_logger(), "Received Command: %d", msg->command);
+                    RCLCPP_INFO(this->get_logger(), "Received Command: %d STOP STOP STOP", msg->command);
                     stop_flag_ = true;
                     turn_flag_ = false;
                     forward_flag_ = false;
                     break;
                 case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
-                    RCLCPP_INFO(this->get_logger(), "Received Command: %d", msg->command);
+                    RCLCPP_INFO(this->get_logger(), "Received Command: %d TURN TURN TURN", msg->command);
                     turn_flag_ = true;
-                    //command_offboard_control_mode();
+                    command_offboard_control_mode();
                     //no ack so forward will not happen yet
                     break;
                 case custom_msg_pkg::msg::Command::FORWARD:
-                    RCLCPP_INFO(this->get_logger(), "Received Command: %d", msg->command);
+                    RCLCPP_INFO(this->get_logger(), "Received Command: %d FORWARD FORWARD FORWARD", msg->command);
                     turn_flag_ = false; //probably rework the transition to forward so we stop turning exactly when we want too. Maybe
                     forward_flag_ = true;
                     break;
@@ -102,9 +103,9 @@ class DroneCommander : public rclcpp::Node
             }
             else if (turn_flag_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
-                command_offboard_control_mode();
-                position_control_.turnByAngle(45.0);
-
+                px4_msgs::msg::TrajectorySetpoint msg = position_control_.turnByAngle(45.0);
+                publishOffboardCtlMsg();
+                trajectory_setpoint_publisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
             }
             // else if (forward_flag_){
@@ -128,6 +129,10 @@ class DroneCommander : public rclcpp::Node
                     case VehicleCommand::VEHICLE_CMD_DO_SET_MODE: { //braces are because i declare a varible inside case statement
                         RCLCPP_INFO(this->get_logger(), "Vehicle mode set");
                         custom_msg_pkg::msg::CommandAck msg_ack;
+                        //OMNLY FOR DEBUGGING REMOVE IF STATEMENT
+                        if(last_command_recieved == custom_msg_pkg::msg::Command::TURN){
+                            break;
+                        }
                         msg_ack.command = last_command_recieved;
                         msg_ack.result = 0;
                         command_ack_publisher_->publish(msg_ack);
