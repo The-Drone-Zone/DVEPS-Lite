@@ -4,14 +4,21 @@
 #include <chrono>
 
 
-PositionControl::PositionControl() : Node("position_control")
+PositionControl::PositionControl(std::shared_ptr<DroneCommander> commander)
+    : commander_(commander) 
+{
+    initSubscribers();
+    initFrame();
+}
+
+void PositionControl::initSubscribers()
 {
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
-    position_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position", qos, std::bind(&PositionControl::positionCallback, this, std::placeholders::_1));
-    odometry_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>("/fmu/out/vehicle_odometry", qos, std::bind(&PositionControl::odometryCallback, this, std::placeholders::_1));
-    global_position_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleGlobalPosition>("/fmu/out/vehicle_global_position", qos,std::bind(&PositionControl::globalPositionCallback, this, std::placeholders::_1));
-    initFrame();
+    position_subscriber_ = commander_->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position", qos, std::bind(&PositionControl::positionCallback, this, std::placeholders::_1));
+    odometry_subscriber_ = commander_->create_subscription<px4_msgs::msg::VehicleOdometry>("/fmu/out/vehicle_odometry", qos, std::bind(&PositionControl::odometryCallback, this, std::placeholders::_1));
+    global_position_subscriber_ = commander_->controlnode.create_subscription<px4_msgs::msg::VehicleGlobalPosition>("/fmu/out/vehicle_global_position", qos,std::bind(&PositionControl::globalPositionCallback, this, std::placeholders::_1));
+    
 }
 
 void PositionControl::positionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
@@ -105,14 +112,4 @@ float PositionControl::getCurrentHeading()
 px4_msgs::msg::VehicleLocalPosition PositionControl::getLocalPosition()
 {
     return current_local_position_;
-}
-
-
-int main(int argc, char **argv)
-{
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<PositionControl>();
-    rclcpp::spin(node);  // This blocks and continuously processes messages
-    rclcpp::shutdown();
-    return 0;
 }

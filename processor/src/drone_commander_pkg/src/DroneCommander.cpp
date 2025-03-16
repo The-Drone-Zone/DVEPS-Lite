@@ -27,6 +27,9 @@ class DroneCommander : public rclcpp::Node
     public:
         DroneCommander(): Node("drone_commander")
         {
+            //passing the drone commander itself into the PositionControl class. 
+            position_control_ = std::make_shared<PositionControl>(this->shared_from_this());
+
             offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
             trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
             vehicle_command_publisher_ = this->create_publisher<VehicleCommand>("/fmu/in/vehicle_command", 10);
@@ -45,8 +48,7 @@ class DroneCommander : public rclcpp::Node
 
     private:
         int offboard_setpoint_counter_;
-        //PositionControl position_control_;
-        auto position_control = std::make_shared<PositionControl>();
+        std::shared_ptr<PositionControl> position_control_;
 
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
