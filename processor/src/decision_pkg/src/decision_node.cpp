@@ -59,7 +59,7 @@ class DecisionController : public rclcpp::Node {
             //printImageObstacles(msg);
 
 
-            if(msg->obstacles.size() > 8 && decision_mode == 0) {
+            if(msg->tracked_obstacle && decision_mode == 0) {
                 
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);

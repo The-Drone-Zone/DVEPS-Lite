@@ -9,7 +9,7 @@
 #include "custom_msg_pkg/msg/command_ack.hpp"
 
 
-#include <pos_pkg/PosFunctions.hpp>
+#include <drone_commander_pkg/PosFunctions.hpp>
 #include <stdint.h>
 #include <chrono>
 #include <iostream>
@@ -22,13 +22,13 @@ using namespace std::chrono_literals;
 using namespace px4_msgs::msg;
 
 
-class DroneCommander : public rclcpp::Node
+class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_this<DroneCommander>
 {
     public:
         DroneCommander(): Node("drone_commander")
         {
             //passing the drone commander itself into the PositionControl class. 
-            position_control_ = std::make_shared<PositionControl>(this->shared_from_this());
+            position_control_ = nullptr; 
 
             offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
             trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
@@ -44,6 +44,11 @@ class DroneCommander : public rclcpp::Node
 
             timer_ = this->create_wall_timer(500ms, std::bind(&DroneCommander::commanderCallback, this));
             offboard_setpoint_counter_ = 0;
+        }
+
+        void initPositionControl(std::shared_ptr<DroneCommander> DC)
+        {
+            position_control_ = std::make_shared<PositionControl>(DC);
         }
 
     private:
@@ -65,7 +70,6 @@ class DroneCommander : public rclcpp::Node
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
         int last_command_recieved = -1;
-
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
             last_command_recieved = msg->command;
@@ -105,7 +109,7 @@ class DroneCommander : public rclcpp::Node
             }
             else if (turn_flag_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
-                px4_msgs::msg::TrajectorySetpoint msg = position_control_.turnByAngle(45.0);
+                px4_msgs::msg::TrajectorySetpoint msg = position_control_->turnByAngle(45.0);
                 publishOffboardCtlMsg();
                 trajectory_setpoint_publisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
@@ -216,8 +220,9 @@ int main(int argc, char *argv[])
 	std::cout << "Starting DroneCommander node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
-	rclcpp::spin(std::make_shared<DroneCommander>());
-
+    auto drone_commander = std::make_shared<DroneCommander>();
+    drone_commander->initPositionControl(drone_commander);
+	rclcpp::spin(drone_commander);
 	rclcpp::shutdown();
 	return 0;
 }   

@@ -12,7 +12,6 @@
   <depend>rclcpp</depend>
   <depend>px4_msgs</depend>
   <depend>custom_msg_pkg</depend>
-  <depend>pos_pkg</depend>
   
   <exec_depend>rosidl_default_runtime</exec_depend>
 

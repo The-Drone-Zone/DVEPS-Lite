@@ -10,6 +10,9 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
+#include <memory>
+
+class DroneCommander;
 
 class PositionControl {
     public:
@@ -24,7 +27,7 @@ class PositionControl {
         void odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg);
         void globalPositionCallback(const px4_msgs::msg::VehicleGlobalPosition::SharedPtr msg);
         void initFrame();
-        void PositionControl::initSubscribers();
+        void initSubscribers();
 
         std::shared_ptr<DroneCommander> commander_;
 
