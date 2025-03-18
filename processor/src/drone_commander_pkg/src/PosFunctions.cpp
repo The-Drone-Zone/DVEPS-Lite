@@ -98,7 +98,7 @@ px4_msgs::msg::TrajectorySetpoint PositionControl::turnByAngle(float angle_degre
     trajectory_setpoint_msg.position[1] = current_local_position_.y;
     trajectory_setpoint_msg.position[2] = current_local_position_.z;
     trajectory_setpoint_msg.yaw = target_yaw;
-    RCLCPP_INFO(commander_->get_logger(), "TRUN TURN TURN MESSAGE: %f, Y: %f, Z: %f", trajectory_setpoint_msg.position[0], trajectory_setpoint_msg.position[1], trajectory_setpoint_msg.position[2]);
+    RCLCPP_INFO(commander_->get_logger(), "TURN TURN TURN MESSAGE: %f, Y: %f, Z: %f", trajectory_setpoint_msg.position[0], trajectory_setpoint_msg.position[1], trajectory_setpoint_msg.position[2]);
 
     return trajectory_setpoint_msg;
 }

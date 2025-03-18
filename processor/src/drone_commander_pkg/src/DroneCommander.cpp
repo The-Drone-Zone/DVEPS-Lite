@@ -105,14 +105,14 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
                 hover_flag_ = true;
                 stop_flag_ = false;
-                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
+                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
             }
             else if (turn_flag_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
                 px4_msgs::msg::TrajectorySetpoint msg = position_control_->turnByAngle(45.0);
                 publishOffboardCtlMsg();
                 trajectory_setpoint_publisher_->publish(msg);
-                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELTE IDK SLEEP IS NESSISARY
+                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
             }
             // else if (forward_flag_){
             //     auto trajectory_setpoint_msg = TrajectorySetpoint();
@@ -202,7 +202,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     break;
                 }
     
-                //what is inside of these should not matter onyy needed inorder to command the vehicle into this mode.
+                //what is inside of these should not matter only needed in order to command the vehicle into this mode.
                 publishOffboardCtlMsg();
                 publishTrajectorySetpoint();
     
