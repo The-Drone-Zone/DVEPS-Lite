@@ -197,12 +197,10 @@ class CommandScreen:
             self.map_frame,
             self.commands_frame,
         ]:
-            other_frame.grid_forget()  # this hides all, frames widgets/frames do not get destroyed just hidden
+            other_frame.grid_remove()  # this hides all and remembers grid positions, not destroyed just hidden
 
-        # this expand the selected frame to the entire window
-        self.frame_wrapper.add_to_window(
-            frame, row=0, column=0, rowspan=2, columnspan=2, sticky="nsew"
-        )
+        # Use pack since we are only showing one frame
+        frame.pack(fill="both", expand=True)
 
         # this make a new button to go back to the original view. this button is added to the frame that was expand
         minimize_btn = self.button_wrapper.create_button(
@@ -222,21 +220,15 @@ class CommandScreen:
             self.map_frame,
             self.commands_frame,
         ]:
-            frame.grid_forget()  # this hides all, frames they are not destroyed just hidden.
+            frame.pack_forget()  # this hides the expanded frame
 
-        # this readds all the frames to the window in their original positions
-        self.frame_wrapper.add_to_window(
-            self.video_frame, row=0, column=0, sticky="nsew"
-        )
-        self.frame_wrapper.add_to_window(
-            self.lidar_frame, row=0, column=1, sticky="nsew"
-        )
-        self.frame_wrapper.add_to_window(self.map_frame, row=1, column=0, sticky="nsew")
-        self.frame_wrapper.add_to_window(
-            self.commands_frame, row=1, column=1, sticky="nsew"
-        )
+        # Shows grid frames in original positions
+        self.video_frame.grid()
+        self.lidar_frame.grid()
+        self.map_frame.grid()
+        self.commands_frame.grid()
 
-        this_button.destroy()  # button destorys itself when pressed
+        this_button.destroy()  # button destroys itself when pressed
 
         self.logs.addUserLog("User minimized a view in the command tab")
 
