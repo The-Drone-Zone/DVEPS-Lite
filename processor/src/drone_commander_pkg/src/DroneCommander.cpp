@@ -70,6 +70,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
         int last_command_recieved = -1;
+        double degree_ = 0.0;
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
             last_command_recieved = msg->command;
@@ -83,6 +84,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d TURN TURN TURN", msg->command);
                     turn_flag_ = true;
+                    degree_ = msg->deg;
                     command_offboard_control_mode();
                     //no ack so forward will not happen yet
                     break;
@@ -109,7 +111,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             }
             else if (turn_flag_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
-                px4_msgs::msg::TrajectorySetpoint msg = position_control_->turnByAngle(45.0);
+                px4_msgs::msg::TrajectorySetpoint msg = position_control_->turnByAngle(degree_);
                 publishOffboardCtlMsg();
                 trajectory_setpoint_publisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE

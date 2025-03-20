@@ -46,9 +46,18 @@ class DecisionController : public rclcpp::Node {
         std::thread find_path_thread;
 
 
-        int decision_mode = 0;
-        bool outstanding_ack= false;
+        std::atomic<int> decision_mode;
+        decision_mode.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEAFULT==0
 
+
+
+        std::atomic<int> current_state;
+        current_state.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEAFULT==0
+
+        std::atomic<bool> outstanding_ack;
+
+        std::atomic<camera_scan_pkg::msg::ObstacleArray> image_obstacles;
+        std::atomic<custom_msg_pkg::msg::LidarPosition> lidar_samples;
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
             // Start time
@@ -57,12 +66,12 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
             //printImageObstacles(msg);
+            image_obstacles = *msg;
 
-
-            if(msg->tracked_obstacle && decision_mode == 0) {
-                
+            if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0) {
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
+                outstanding_ack.store(true, std::memory_order_release); 
             }
             
 
@@ -86,7 +95,7 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
 
             // Image to LiDAR map function call goes here
-
+            //ADD LIDAR MSG CLASS HERE
             // End time
             auto end = std::chrono::high_resolution_clock::now();
             // Compute duration
@@ -99,29 +108,33 @@ class DecisionController : public rclcpp::Node {
         }
 
 
+        // The variable current_state is used to keep track of the current state of the drone.
+        // it only gets updated when an acknowledgement is received from the DroneCommander telling the decision_node
+        // that the drone has successfully completed the command. ie the last completed command is the current state.
         void command_ack_callback(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
             if(msg->result == 0) {
                 switch(msg->command) {
                     case custom_msg_pkg::msg::Command::STOP:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Stopped");
-                        decision_mode = 1;
+                        current_state.store(custom_msg_pkg::msg::Command::STOP, std::memory_order_release); //STOP==1
                         break;
                     case custom_msg_pkg::msg::Command::TURN:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Turned");
-                        decision_mode = 2;
+                        current_state.store(custom_msg_pkg::msg::Command::TURN, std::memory_order_release); //STOP==2
                         break;
                     case custom_msg_pkg::msg::Command::FORWARD:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Moved Forward");
-                        decision_mode = 3;
+                        current_state.store(custom_msg_pkg::msg::Command::FORWARD, std::memory_order_release); //STOP==3
                         break;
                     case custom_msg_pkg::msg::Command::DEFAULT:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
-                        decision_mode = 0;
+                        current_state.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEFAULT==0
                         break;
                     default:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
                         break;
                 }
+                outstanding_ack.store(false, std::memory_order_release);
                 RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
             }
             else {
@@ -130,31 +143,54 @@ class DecisionController : public rclcpp::Node {
         }
 
         void find_path() {
+            int turn_count = 0;
             while(rclcpp::ok()) {
-                if(decision_mode == 1) {
-                    RCLCPP_INFO(this->get_logger(), "Finding Path / Turnning Drone");
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10000)); // for test only making sure drone stops appropriatly. 
-                    publish_control_command(custom_msg_pkg::msg::Command::TURN);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
-                    decision_mode = -1; //commented for test also proabbly should just delte.
+
+                
+                //the current state is stopped and we need to start turning
+                if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::STOP && outstanding_ack.load(std::memory_order_acquire) == false){
+                    turn_count++;
+                    if(turn_count < 24) {
+                        publish_control_command(custom_msg_pkg::msg::Command::TURN);
+                        outstanding_ack.store(true, std::memory_order_release);
+                    }
+                    
                 }
-                else if(decision_mode == 2) {
+                else if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::TURN && outstanding_ack.load(std::memory_order_acquire) == false) {
+                   current_state.store(custom_msg_pkg::msg::Command::REROUTING, std::memory_order_release);
+                }
+                else if (current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::REROUTING) {
+                    //chill for a bit
+                    RCLCPP_INFO(this->get_logger(), "Rerouting");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
+                    if(image_obstacles->tracked_obstacle) {
+                        turn_count++;
+                        if(turn_count == 11){
+                            publish_control_command(custom_msg_pkg::msg::Command::TURN, -165);
+                        }
+                        else {
+                            publish_control_command(custom_msg_pkg::msg::Command::TURN);
+                        }
+                        outstanding_ack.store(true, std::memory_order_release);
+                    }
+                    else {
+                        publish_control_command(custom_msg_pkg::msg::Command::FORWARD);
+                        outstanding_ack.store(true, std::memory_order_release);
+                    }
+
+                }
+                else if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::FORWARD) {
                     RCLCPP_INFO(this->get_logger(), "Stopping Turn / Moving Forward");
-                    publish_control_command(custom_msg_pkg::msg::Command::FORWARD);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
-                    decision_mode = 3;
-                }
-                else if (decision_mode == 3) {
-                    RCLCPP_INFO(this->get_logger(), "Resume Normal Operation");
                     publish_control_command(custom_msg_pkg::msg::Command::DEFAULT);
-                    decision_mode = 0;
+                    outstanding_ack.store(true, std::memory_order_release);
                 }
             }
         }
 
-        void publish_control_command(const int32_t &in_command) {
+        void publish_control_command(const int32_t &in_command, const int32_t &degree = 15) {
             custom_msg_pkg::msg::Command command_msg;
             command_msg.command = in_command;
+            command_msg.deg = degree;
             command_publisher_->publish(command_msg);
         }
 

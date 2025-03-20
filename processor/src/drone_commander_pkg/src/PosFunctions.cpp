@@ -36,7 +36,7 @@ void PositionControl::odometryCallback(const px4_msgs::msg::VehicleOdometry::Sha
     float q3 = msg->q[3];  
 
     float psi = atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3));
-    //current_heading_ = psi * (180.0 / M_PI) - local_offset_;
+    current_heading_ = psi * (180.0 / M_PI) - local_offset_;
 
    // RCLCPP_INFO(commander_->get_logger(), "Odometry - X: %f, Y: %f, Z: %f", current_odometry_.position[0], current_odometry_.position[1], current_odometry_.position[2]);
 }
