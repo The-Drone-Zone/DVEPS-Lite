@@ -238,6 +238,8 @@ class CommandScreen:
         self.map_frame.grid()
         self.commands_frame.grid()
 
+        # self.video_frame.config(width=400, height=300)
+        # self.update_video()
         this_button.destroy()  # button destroys itself when pressed
 
         self.logs.addUserLog("User minimized a view in the command tab")
