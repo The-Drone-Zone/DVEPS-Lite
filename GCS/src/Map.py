@@ -106,28 +106,29 @@ class Map:
         )
 
         if file_path and not os.path.isfile(file_path):
-            file_path = self.globals.Utils.ask_for_input(file_path)
+            self.window_wrapper.display_message("The file path you entered does not exist.")
+        elif file_path:
+            try:
+                # Open and read the file line by line
+                with open(file_path, mode="r") as file:
+                    reader = csv.reader(file)
+                    next(reader)  # Skip the header row
 
-        try:
-            # Open and read the file line by line
-            with open(file_path, mode="r") as file:
-                reader = csv.reader(file)
-                next(reader)  # Skip the header row
-
-                for row in reader:
-                    latitude, longitude = row
-                    self.add_marker_event([float(latitude), float(longitude)])
-                    self.logs.addUserLog(
-                        f"{self.map_name}: User added marker at ({latitude}, {longitude}) by uploading a custom flight path file."
-                    )
-            self.logs.addUserLog(
-                f"{self.map_name}: User uploaded a custom flight path file."
-            )
-        except Exception as e:
-            self.logs.addUserLog(
-                f"{self.map_name}: Error: User attempted to upload an invalid flight path file: {e}"
-            )
-            self.clear_marks()
+                    for row in reader:
+                        latitude, longitude = row
+                        self.add_marker_event([float(latitude), float(longitude)])
+                        self.logs.addUserLog(
+                            f"{self.map_name}: User added marker at ({latitude}, {longitude}) by uploading a custom flight path file."
+                        )
+                self.logs.addUserLog(
+                    f"{self.map_name}: User uploaded a custom flight path file."
+                )
+            except Exception as e:
+                self.window_wrapper.display_message("Error: An invalid flight path file was uploaded.")
+                self.logs.addUserLog(
+                    f"{self.map_name}: Error: User attempted to upload an invalid flight path file: {e}"
+                )
+                self.clear_marks()
 
     def clear_marks(self):
         for marker in self.markers:
