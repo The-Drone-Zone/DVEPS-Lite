@@ -9,8 +9,9 @@ class ButtonWrapper:
 
     def create_button(self, window, text_size=20, **kwargs):
         button = tk.Button(
-            window, font=("Helvetica", text_size), anchor="center", **kwargs
+            window, font=("Helvetica", text_size), anchor="center", bg="#e1e3de", **kwargs
         )
+        self.add_hover_effect(button)
 
         return button
 
@@ -33,3 +34,7 @@ class ButtonWrapper:
         button.place(relx=0.5, y=y, anchor=tk.CENTER)
         button.lift()
         return button
+    
+    def add_hover_effect(self, button):
+        button.bind("<Enter>", lambda e: button.config(bg="#babdb7"))
+        button.bind("<Leave>", lambda e: button.config(bg="#e1e3de"))
