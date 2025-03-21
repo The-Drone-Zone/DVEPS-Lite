@@ -66,11 +66,18 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
 
         bool stop_flag_ = false;
         bool turn_flag_ = false;
+        bool first_turn = true;
+        bool commanded_turn = false;
+        bool in_offboard_control_ = false;
         bool forward_flag_ = false;
+        bool first_forward = true;
+        bool resume_flag_ = false;
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
         int last_command_recieved = -1;
         double degree_ = 0.0;
+        std::array<float, 3> current_pos = {};
+        float position_X_copy = 0.0;
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
             last_command_recieved = msg->command;
@@ -84,8 +91,15 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d TURN TURN TURN", msg->command);
                     turn_flag_ = true;
+                    commanded_turn = true;
+                    stop_flag_ = false;
+                    forward_flag_ = false;
+                    if(first_turn){
+                        command_offboard_control_mode();
+                        first_turn = false;
+                    }
                     degree_ = msg->deg;
-                    command_offboard_control_mode();
+                    RCLCPP_INFO(this->get_logger(), "degree %f", degree_);
                     //no ack so forward will not happen yet
                     break;
                 case custom_msg_pkg::msg::Command::FORWARD:
@@ -99,7 +113,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             }
         }
 
-        void commanderCallback() {
+        void commanderCallback() {            
             if(stop_flag_){
                 //command do set mode, custom mode px4 (1), px4 mode auto mission(4), px4 sub mode hold(3)
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 3); //Get rid of magic numbers later
@@ -107,27 +121,76 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
                 hover_flag_ = true;
                 stop_flag_ = false;
-                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
             }
-            else if (turn_flag_){
+            else if (turn_flag_ && in_offboard_control_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
-                px4_msgs::msg::TrajectorySetpoint msg = position_control_->turnByAngle(degree_);
-                publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(msg);
+                RCLCPP_INFO(this->get_logger(), "\n START turn command to the vehicle.");
+                    px4_msgs::msg::TrajectorySetpoint msg;
+
+                    if(commanded_turn){
+                        msg = position_control_->turnByAngle(degree_, true);
+                    }
+                    else {
+                        msg = position_control_->turnByAngle(degree_);
+                    }
+
+                    publishOffboardCtlMsg();
+                    trajectory_setpoint_publisher_->publish(msg);
+                RCLCPP_INFO(this->get_logger(), "SENT turn command to the vehicle.");
+
+                if(commanded_turn){
+                    custom_msg_pkg::msg::CommandAck msg_ack;
+                    msg_ack.command = 2;
+                    msg_ack.result = 0;
+                    command_ack_publisher_->publish(msg_ack);
+                    commanded_turn = false;
+                }
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
             }
-            // else if (forward_flag_){
-            //     auto trajectory_setpoint_msg = TrajectorySetpoint();
-            //     trajectory_setpoint_msg.position[0] = current_pos_[0] + 5.0;  // Move forward 5 meters
-            //     trajectory_setpoint_msg.position[1] = current_pos_[1];
-            //     trajectory_setpoint_msg.position[2] = current_pos_[2];
-            //     trajectory_setpoint_msg.yaw = current_yaw_;
+            else if (forward_flag_){
 
-            //     publishOffboardCtlMsg();
-            //     trajectory_setpoint_publisher_->publish(trajectory_setpoint_msg);
+                if(first_forward){
+                    current_pos = position_control_->getLocalPosition();
+                    position_X_copy = current_pos[0];
+                    current_pos[0] += 5.0;
+                }
 
-            //     RCLCPP_INFO(this->get_logger(), "Forward Command Sent: %.2f meters", trajectory_setpoint_msg.position[0]);
-            // }
+                publishOffboardCtlMsg();
+                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(current_pos[0]));
+
+                if(first_forward){
+                    custom_msg_pkg::msg::CommandAck msg_ack;
+                    msg_ack.command = 3;
+                    msg_ack.result = 0;
+                    command_ack_publisher_->publish(msg_ack);
+                    first_forward = false;
+                }
+
+                if(position_control_->checkDist(position_X_copy))
+                {
+                    forward_flag_ = false;
+                    resume_flag_ = true;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
+
+                // for(int i = 0; i < 5; ++i){
+                //     publishOffboardCtlMsg();
+                //     trajectory_setpoint_publisher_->publish(position_control_->moveForward());
+
+                //     custom_msg_pkg::msg::CommandAck msg_ack;
+                //     msg_ack.command = 3;
+                //     msg_ack.result = 0;
+                //     command_ack_publisher_->publish(msg_ack);
+                //     std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
+                // }
+
+                //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
+            }
+            else if (resume_flag_){
+                publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
+                resume_flag_ = false;
+            }
         }
 
 
@@ -136,11 +199,9 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 switch(msg->command) {
                     case VehicleCommand::VEHICLE_CMD_DO_SET_MODE: { //braces are because i declare a varible inside case statement
                         RCLCPP_INFO(this->get_logger(), "Vehicle mode set");
+                        RCLCPP_INFO(this->get_logger(), "Last command: %d", last_command_recieved);
+
                         custom_msg_pkg::msg::CommandAck msg_ack;
-                        //OMNLY FOR DEBUGGING REMOVE IF STATEMENT
-                        if(last_command_recieved == custom_msg_pkg::msg::Command::TURN){
-                            break;
-                        }
                         msg_ack.command = last_command_recieved;
                         msg_ack.result = 0;
                         command_ack_publisher_->publish(msg_ack);
@@ -150,7 +211,6 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
                         break;
                 }
-                RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
             }
             else {
                 RCLCPP_INFO(this->get_logger(), "Vehicle command failed");
@@ -201,6 +261,8 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             for(int i = 0; i <= 10; ++i){
                 if (offboard_setpoint_counter == 10) {
                     this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+                    RCLCPP_INFO(this->get_logger(), "offboard_control_mode");
+                    in_offboard_control_ = true;
                     break;
                 }
     
@@ -212,7 +274,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     offboard_setpoint_counter++;
                 }
             }
-            
+            RCLCPP_INFO(this->get_logger(), "command_offboard_control_mode()");
         }
 };
 

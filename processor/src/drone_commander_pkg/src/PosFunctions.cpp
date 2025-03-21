@@ -23,7 +23,7 @@ void PositionControl::initSubscribers()
 void PositionControl::positionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
 {
     current_local_position_ = *msg;
-    RCLCPP_INFO(commander_->get_logger(), "Local Position - X: %f, Y: %f, Z: %f", msg->x, msg->y, msg->z);
+    //RCLCPP_INFO(commander_->get_logger(), "Local Position - X: %f, Y: %f, Z: %f", msg->x, msg->y, msg->z);
 }
 
 void PositionControl::odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg)
@@ -36,7 +36,7 @@ void PositionControl::odometryCallback(const px4_msgs::msg::VehicleOdometry::Sha
     float q3 = msg->q[3];  
 
     float psi = atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3));
-    current_heading_ = psi * (180.0 / M_PI) - local_offset_;
+    current_heading_ = psi;
 
    // RCLCPP_INFO(commander_->get_logger(), "Odometry - X: %f, Y: %f, Z: %f", current_odometry_.position[0], current_odometry_.position[1], current_odometry_.position[2]);
 }
@@ -79,13 +79,26 @@ void PositionControl::initFrame()
     local_offset_pose_.y /= iterations;
     local_offset_pose_.z /= iterations;
     local_offset_ /= iterations;
+    RCLCPP_INFO(commander_->get_logger(), "LOCAL OFFSET: %f", local_offset_);
 }
 
-px4_msgs::msg::TrajectorySetpoint PositionControl::turnByAngle(float angle_degrees)
+px4_msgs::msg::TrajectorySetpoint PositionControl::turnByAngle(float angle_degrees, bool commanded)
 {
-    float angle_radians = angle_degrees * (M_PI / 180.0);
-    float current_yaw = getCurrentHeading();
-    float target_yaw = current_yaw + angle_radians;
+    std::array<float, 3> current_pos = getLocalPosition();
+    float target_yaw;
+
+    if(commanded){
+        float angle_radians = angle_degrees * (M_PI / 180.0);
+        float current_yaw = getCurrentHeading();
+        RCLCPP_INFO(commander_->get_logger(), "CURRENT YAW: %f, ANGLE_DEGREES %f", current_yaw * (180.0 / M_PI), angle_degrees);
+
+        target_yaw = current_yaw + angle_radians;
+        place_holder_yaw = target_yaw;
+        current_pos[2] -= 0.35; //avoid decrease in height from turning
+    }
+    else{
+        target_yaw = place_holder_yaw;
+    }
 
     if (target_yaw > M_PI) {
         target_yaw -= 2 * M_PI;
@@ -94,13 +107,40 @@ px4_msgs::msg::TrajectorySetpoint PositionControl::turnByAngle(float angle_degre
     }
 
     px4_msgs::msg::TrajectorySetpoint trajectory_setpoint_msg;
-    trajectory_setpoint_msg.position[0] = current_local_position_.x;
-    trajectory_setpoint_msg.position[1] = current_local_position_.y;
-    trajectory_setpoint_msg.position[2] = current_local_position_.z;
+    trajectory_setpoint_msg.position[0] = current_pos[0];
+    trajectory_setpoint_msg.position[1] = current_pos[1];
+    trajectory_setpoint_msg.position[2] = current_pos[2];
     trajectory_setpoint_msg.yaw = target_yaw;
-    RCLCPP_INFO(commander_->get_logger(), "TURN TURN TURN MESSAGE: %f, Y: %f, Z: %f", trajectory_setpoint_msg.position[0], trajectory_setpoint_msg.position[1], trajectory_setpoint_msg.position[2]);
+    trajectory_setpoint_msg.yawspeed = 0.0;
+    RCLCPP_INFO(commander_->get_logger(), "TURN TURN TURN YAW: %f, ELIVATION %f", target_yaw * (180.0 / M_PI), trajectory_setpoint_msg.position[2]);
+
 
     return trajectory_setpoint_msg;
+}
+
+px4_msgs::msg::TrajectorySetpoint PositionControl::moveForwardByMeters(float dist){
+
+    std::array<float, 3> current_pos = getLocalPosition();
+
+    auto trajectory_setpoint_msg = TrajectorySetpoint();
+    trajectory_setpoint_msg.position[0] = dist;  // Move forward 5 meters
+    trajectory_setpoint_msg.position[1] = current_pos[1];
+    trajectory_setpoint_msg.position[2] = current_pos[2];
+    trajectory_setpoint_msg.yaw = getCurrentHeading();
+    RCLCPP_INFO(commander_->get_logger(), "POS 0: %f::: CURRENT POS: %f", trajectory_setpoint_msg.position[0], current_pos[0]);
+
+    return trajectory_setpoint_msg;
+}
+
+bool PositionControl::checkDist(float start_dist){
+    std::array<float, 3> current_pos = getLocalPosition();
+
+    if(fabs(start_dist - current_pos[0]) > 4.5){
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 float PositionControl::getCurrentHeading()
@@ -108,7 +148,11 @@ float PositionControl::getCurrentHeading()
     return current_heading_;
 }
 
-px4_msgs::msg::VehicleLocalPosition PositionControl::getLocalPosition()
+std::array<float, 3> PositionControl::getLocalPosition()
 {
-    return current_local_position_;
+    std::array<float, 3> pos = {};
+    pos[0] = current_local_position_.x;
+    pos[1] = current_local_position_.y;
+    pos[2] = current_local_position_.z;
+    return pos;
 }

@@ -13,6 +13,13 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_msgs/msg/header.hpp"
 
+enum STATES {
+    DEFAULT = 0,
+    STOP,
+    TURN,
+    REROUTING,
+    FORWARD
+};
 
 class DecisionController : public rclcpp::Node {
     public:
@@ -32,6 +39,8 @@ class DecisionController : public rclcpp::Node {
             command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
 
             find_path_thread = std::thread(&DecisionController::find_path, this);
+            decision_mode.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
+            current_state.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
 
         }
 
@@ -46,18 +55,16 @@ class DecisionController : public rclcpp::Node {
         std::thread find_path_thread;
 
 
-        std::atomic<int> decision_mode;
-        decision_mode.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEAFULT==0
-
-
-
-        std::atomic<int> current_state;
-        current_state.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEAFULT==0
+        std::atomic<STATES> decision_mode;
+        std::atomic<STATES> current_state;
+        
 
         std::atomic<bool> outstanding_ack;
 
-        std::atomic<camera_scan_pkg::msg::ObstacleArray> image_obstacles;
-        std::atomic<custom_msg_pkg::msg::LidarPosition> lidar_samples;
+        camera_scan_pkg::msg::ObstacleArray image_obstacles;
+        custom_msg_pkg::msg::LidarPosition lidar_samples;
+        int turn_count = 0;
+
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
             // Start time
@@ -68,7 +75,7 @@ class DecisionController : public rclcpp::Node {
             //printImageObstacles(msg);
             image_obstacles = *msg;
 
-            if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0) {
+            if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
@@ -116,26 +123,25 @@ class DecisionController : public rclcpp::Node {
                 switch(msg->command) {
                     case custom_msg_pkg::msg::Command::STOP:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Stopped");
-                        current_state.store(custom_msg_pkg::msg::Command::STOP, std::memory_order_release); //STOP==1
+                        current_state.store(STATES::STOP, std::memory_order_release); //STOP==1
                         break;
                     case custom_msg_pkg::msg::Command::TURN:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Turned");
-                        current_state.store(custom_msg_pkg::msg::Command::TURN, std::memory_order_release); //STOP==2
+                        current_state.store(STATES::TURN, std::memory_order_release); //STOP==2
                         break;
                     case custom_msg_pkg::msg::Command::FORWARD:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Moved Forward");
-                        current_state.store(custom_msg_pkg::msg::Command::FORWARD, std::memory_order_release); //STOP==3
+                        current_state.store(STATES::FORWARD, std::memory_order_release); //STOP==3
                         break;
-                    case custom_msg_pkg::msg::Command::DEFAULT:
-                        RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
-                        current_state.store(custom_msg_pkg::msg::Command::DEFAULT, std::memory_order_release); //DEFAULT==0
-                        break;
+                    // case custom_msg_pkg::msg::Command::DEFAULT:
+                    //     RCLCPP_INFO(this->get_logger(), "Vehicle DEFAULT");
+                    //     current_state.store(STATES::DEFAULT, std::memory_order_release); //DEFAULT==0
+                    //     break;
                     default:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
                         break;
                 }
                 outstanding_ack.store(false, std::memory_order_release);
-                RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
             }
             else {
                 RCLCPP_INFO(this->get_logger(), "Vehicle command failed");
@@ -143,46 +149,68 @@ class DecisionController : public rclcpp::Node {
         }
 
         void find_path() {
-            int turn_count = 0;
             while(rclcpp::ok()) {
 
                 
                 //the current state is stopped and we need to start turning
-                if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::STOP && outstanding_ack.load(std::memory_order_acquire) == false){
+                if(current_state.load(std::memory_order_acquire) == STATES::STOP && outstanding_ack.load(std::memory_order_acquire) == false){
+                    RCLCPP_INFO(this->get_logger(), "STOP STATE");
                     turn_count++;
                     if(turn_count < 24) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10000)); //replace maybe with new logic for decision component
+                        RCLCPP_INFO(this->get_logger(), "PUBLISHED FIRST TURN");
                         publish_control_command(custom_msg_pkg::msg::Command::TURN);
                         outstanding_ack.store(true, std::memory_order_release);
                     }
                     
                 }
-                else if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::TURN && outstanding_ack.load(std::memory_order_acquire) == false) {
-                   current_state.store(custom_msg_pkg::msg::Command::REROUTING, std::memory_order_release);
+                else if(current_state.load(std::memory_order_acquire) == STATES::TURN && outstanding_ack.load(std::memory_order_acquire) == false) {
+                    RCLCPP_INFO(this->get_logger(), "TURN STATE");
+                   current_state.store(STATES::REROUTING, std::memory_order_release);
                 }
-                else if (current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::REROUTING) {
+                else if (current_state.load(std::memory_order_acquire) == STATES::REROUTING && outstanding_ack.load(std::memory_order_acquire) == false) {
                     //chill for a bit
                     RCLCPP_INFO(this->get_logger(), "Rerouting");
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
-                    if(image_obstacles->tracked_obstacle) {
+                    if(image_obstacles.tracked_obstacle) {
                         turn_count++;
+                        RCLCPP_INFO(this->get_logger(), "TURN COUNT, %d ", turn_count);
+
+
                         if(turn_count == 11){
+                            RCLCPP_INFO(this->get_logger(), "BIG TURN");
+                            std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
                             publish_control_command(custom_msg_pkg::msg::Command::TURN, -165);
                         }
-                        else {
+                        else if (turn_count < 11) {
+                            RCLCPP_INFO(this->get_logger(), "LITTLE TURN");
+                            std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
                             publish_control_command(custom_msg_pkg::msg::Command::TURN);
                         }
-                        outstanding_ack.store(true, std::memory_order_release);
-                    }
-                    else {
-                        publish_control_command(custom_msg_pkg::msg::Command::FORWARD);
+                        else if (turn_count < 23){
+                            RCLCPP_INFO(this->get_logger(), "OPPOSITE LITTLE TURN");
+                            std::this_thread::sleep_for(std::chrono::milliseconds(5000)); //replace maybe with new logic for decision component
+                            publish_control_command(custom_msg_pkg::msg::Command::TURN, -15.0);
+                        }
+                        else {
+                            current_state.store(STATES::STOP, std::memory_order_release); //STOP==1
+                        }
                         outstanding_ack.store(true, std::memory_order_release);
                     }
 
+
+                    else {
+                        RCLCPP_INFO(this->get_logger(), "Published first forward ");
+                        publish_control_command(custom_msg_pkg::msg::Command::FORWARD);
+                        outstanding_ack.store(true, std::memory_order_release);
+                        turn_count = 0;
+                    }
+
                 }
-                else if(current_state.load(std::memory_order_acquire) == custom_msg_pkg::msg::Command::FORWARD) {
+                else if(current_state.load(std::memory_order_acquire) == STATES::FORWARD && outstanding_ack.load(std::memory_order_acquire) == false) {
                     RCLCPP_INFO(this->get_logger(), "Stopping Turn / Moving Forward");
-                    publish_control_command(custom_msg_pkg::msg::Command::DEFAULT);
-                    outstanding_ack.store(true, std::memory_order_release);
+                    // publish_control_command(custom_msg_pkg::msg::Command::DEFAULT);
+                    current_state.store(STATES::DEFAULT, std::memory_order_release); //DEFAULT==0
+                    // outstanding_ack.store(true, std::memory_order_release);
                 }
             }
         }
