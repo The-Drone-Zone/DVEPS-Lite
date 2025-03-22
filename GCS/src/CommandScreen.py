@@ -1,9 +1,11 @@
+import cv2
 import os
 import sys
 import tkinter as tk
-from Map import Map
-from LogWindow import LoggingWindow
 from Drone import Drone
+from LogWindow import LoggingWindow
+from Map import Map
+from PIL import Image, ImageTk
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -39,11 +41,19 @@ class CommandScreen:
 
         # major command frames
         self.video_frame: tk.Frame = None
+        self.video_frame_width = None
+        self.video_frame_height = None
+
         self.lidar_frame: tk.Frame = None
         self.map_frame: tk.Frame = None
         self.commands_frame: tk.Frame = None
+        self.cap = cv2.VideoCapture(2)
         self.create_frames()
 
+        self.video_frame_width = self.video_frame.winfo_width()
+        self.video_frame_height = self.video_frame.winfo_height()
+        self.create_video_display()
+        self.update_video()
         ###############################################################################
         ###############################################################################
         # These variables are for the Command Frame
@@ -239,3 +249,26 @@ class CommandScreen:
             self.drone_connection_label.config(text="Drone Connected")
         else:
             self.drone_connection_label.config(text="Drone Not Connected")
+
+    def create_video_display(self):
+        self.video_label = tk.Label(self.video_frame)
+        self.video_label.grid(row=0, column=0, sticky="nsew")
+
+
+    def update_video(self):
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            frame_width = self.video_frame.winfo_width()
+            frame_height = self.video_frame.winfo_height()
+            # print(frame_width, frame_height)
+            frame = cv2.resize(frame, (frame_width, frame_height))
+
+            img = Image.fromarray(frame)
+            imgtk = ImageTk.PhotoImage(image=img)
+
+            self.video_label.imgtk = imgtk
+            self.video_label.config(image=imgtk)
+
+        self.video_label.after(10, self.update_video) #run every 10ms

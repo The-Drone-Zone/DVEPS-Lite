@@ -32,6 +32,7 @@ class ButtonWrapper:
         :param y: screen units in y-direction to be placed.
         """
         button.place(relx=0.5, y=y, anchor=tk.CENTER)
+        button.lift()
         return button
     
     def add_hover_effect(self, button):
