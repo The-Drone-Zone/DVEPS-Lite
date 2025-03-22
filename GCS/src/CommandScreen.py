@@ -238,8 +238,6 @@ class CommandScreen:
         self.map_frame.grid()
         self.commands_frame.grid()
 
-        # self.video_frame.config(width=400, height=300)
-        # self.update_video()
         this_button.destroy()  # button destroys itself when pressed
 
         self.logs.addUserLog("User minimized a view in the command tab")
@@ -254,10 +252,7 @@ class CommandScreen:
 
     def create_video_display(self):
         self.video_label = tk.Label(self.video_frame)
-        #self.video_label.pack(fill="none")
-        self.video_label.grid(row=0, column=0, sticky="nsew")  # Use grid() instead of pack()
-        # self.video_frame.grid_rowconfigure(0, weight=1)  # Allow the row to expand but not the widget itself
-        # self.video_frame.grid_columnconfigure(0, weight=1)  # Allow the column to expand but not the widget itself
+        self.video_label.grid(row=0, column=0, sticky="nsew")
 
 
     def update_video(self):
