@@ -35,7 +35,6 @@ ament_target_dependencies(lidar_node
   std_srvs
   sensor_msgs
   custom_msg_pkg
-  px4_msgs
 )
 
 add_executable(lidar_composition src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
@@ -52,6 +51,7 @@ ament_target_dependencies(lidar_analysis_node
   std_srvs
   sensor_msgs
   custom_msg_pkg
+  px4_msgs
 )
 
 install(
