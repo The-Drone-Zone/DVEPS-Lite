@@ -5,3 +5,4 @@ tkintermapview
 pyyaml
 mavsdk
 asyncio
+pymavlink

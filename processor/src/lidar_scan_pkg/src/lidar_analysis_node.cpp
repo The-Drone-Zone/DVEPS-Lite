@@ -55,7 +55,7 @@ class SLLidarClient : public rclcpp::Node {
     {
 
         sensor_msgs::msg::LaserScan current_scan = *scan;
-        flaot sum_of_potential_x = 0.0;
+        float sum_of_potential_x = 0.0;
         float sum_of_potential_y = 0.0;
         bool avoid = false;
 
