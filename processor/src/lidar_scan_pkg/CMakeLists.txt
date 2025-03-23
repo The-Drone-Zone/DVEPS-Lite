@@ -20,6 +20,7 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(custom_msg_pkg REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 include_directories(
   ${RPLIDAR_SDK_PATH}/include
@@ -34,6 +35,7 @@ ament_target_dependencies(lidar_node
   std_srvs
   sensor_msgs
   custom_msg_pkg
+  px4_msgs
 )
 
 add_executable(lidar_composition src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
@@ -60,5 +62,6 @@ install(
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(std_msgs)
 ament_export_dependencies(sensor_msgs)
+ament_export_dependencies(px4_msgs)
 ament_export_include_directories(include)
 ament_package()
