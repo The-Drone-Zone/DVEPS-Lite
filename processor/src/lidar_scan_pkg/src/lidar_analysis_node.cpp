@@ -15,6 +15,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "custom_msg_pkg/msg/lidar_position.hpp"
+#include <px4_msgs/msg/obstacle_distance.hpp>
 
 #define RAD2DEG(x) ((x) * 180.0 / M_PI)
 
@@ -25,6 +26,7 @@ class SLLidarClient : public rclcpp::Node {
             "scan", rclcpp::SensorDataQoS(), std::bind(&SLLidarClient::scanCallback, this, std::placeholders::_1));
 
         analysis_pub = this->create_publisher<custom_msg_pkg::msg::LidarPosition>("Lidar/analysis", rclcpp::QoS(rclcpp::KeepLast(10)));
+        pixhawk_pub = this->create_publisher<px4_msgs::msg::ObstacleDistance>("/fmu/in/obstacle_distance", 10);
     }
 
    private:
@@ -33,11 +35,17 @@ class SLLidarClient : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "I heard a laser scan %s[%d]", scan->header.frame_id.c_str(), count);
         RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
 
-        // for (int i = 0; i < count; i++) {
-        //     float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-        //     RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-        // }
+        // For testing lidar messages (we can change which points we publish later)
+        px4_msgs::msg::ObstacleDistance GCS_msg;
+        for (int i = 0; i < count; i+= 45) {
+            float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+            RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+            GCS_msg.distances[i] = scan->ranges[i];
+            GCS_msg.increment = scan->angle_increment * 45;
+        }
+
         RCLCPP_INFO(this->get_logger(), "range_size : %d", count);
+        pixhawk_pub->publish(GCS_msg);
         publish_analysis(this->analysis_pub, scan, count);
     }
 
@@ -86,6 +94,7 @@ class SLLidarClient : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
     rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
+    rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
 };
 
 int main(int argc, char **argv) {
