@@ -70,7 +70,7 @@ class CommandScreen:
 
         ### LiDAR Frame Setup
         # Create a Matplotlib figure
-        self.lidar_fig, self.lidar_ax = plt.subplots(figsize=(1, 1))
+        self.lidar_fig, self.lidar_ax = plt.subplots(figsize=(0.1, 0.1), dpi=150)
 
         # Embed the Matplotlib plot into Tkinter canvas
         self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
@@ -197,6 +197,7 @@ class CommandScreen:
         self.frame_wrapper.add_to_window(
             self.lidar_frame, row=1, column=1, sticky="nsew"
         )
+        self.lidar_frame.grid_propagate(False)
 
         # Create Map frame
         self.map_frame = self.frame_wrapper.create_frame(
