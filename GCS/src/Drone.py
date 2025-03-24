@@ -1,5 +1,6 @@
 from mavsdk import System
 from mavsdk.mission import MissionItem, MissionPlan
+from pymavlink.dialects.v20 import common as mavlink2
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
 import asyncio
@@ -68,6 +69,7 @@ class Drone:
         asyncio.run_coroutine_threadsafe(self.print_battery(), self.loop)
         asyncio.run_coroutine_threadsafe(self.print_gps_info(), self.loop)
         asyncio.run_coroutine_threadsafe(self.get_position(), self.loop)
+        asyncio.run_coroutine_threadsafe(self.get_lidar_samples(), self.loop)
 
         # Start drone health/connection loops
         asyncio.run_coroutine_threadsafe(self.check_drone_connection(), self.loop)
@@ -176,6 +178,13 @@ class Drone:
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
             await asyncio.sleep(1)
+
+    async def get_lidar_samples(self):
+        async for msg in self.drone.subscribe_mavlink_message():
+            if msg.msgid == mavlink2.MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
+                obstacle = mavlink2.MAVLink_obstacle_distance_message.decode(msg.payload)
+                print(f"Received OBSTACLE_DISTANCE: {obstacle.distances}")
+                self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {obstacle.distances}")
 
     ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):

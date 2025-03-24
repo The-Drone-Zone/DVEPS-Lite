@@ -6,6 +6,10 @@ from Drone import Drone
 from LogWindow import LoggingWindow
 from Map import Map
 from PIL import Image, ImageTk
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -58,10 +62,22 @@ class CommandScreen:
         self.cap = cv2.VideoCapture(2)
         self.create_frames()
 
+        ### Video Frame Setup
         self.video_frame_width = self.video_frame.winfo_width()
         self.video_frame_height = self.video_frame.winfo_height()
         self.create_video_display()
         self.update_video()
+
+        ### LiDAR Frame Setup
+        # Create a Matplotlib figure
+        self.lidar_fig, self.lidar_ax = plt.subplots(figsize=(1, 1))
+
+        # Embed the Matplotlib plot into Tkinter canvas
+        self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
+        self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        self.update_lidar_plot()
+
         ###############################################################################
         ###############################################################################
         # These variables are for the Command Frame
@@ -326,6 +342,49 @@ class CommandScreen:
             self.video_label.config(image=imgtk)
 
         self.video_label.after(10, self.update_video) #run every 10ms
+
+    def update_lidar_plot(self):
+        def update():
+            # Simulate incoming LiDAR data (Replace this with real data)
+            angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
+            distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+            
+            # Convert polar to cartesian coordinates
+            y = distances * np.cos(np.radians(angles))
+            x = distances * np.sin(np.radians(angles))
+            
+            # Clear previous plot and plot new data
+            self.lidar_ax.clear()
+            self.lidar_ax.scatter([0], [0.5], color='red', s=500) # Represents drone position
+            self.lidar_ax.scatter(x, y, color='blue', s=25)  # Draw lidar points
+
+            # Set axis limits
+            self.lidar_ax.set_xlim(-15, 15)
+            self.lidar_ax.set_ylim(0, 30)
+
+            # Set axis labels
+            self.lidar_ax.set_xlabel("Horizontal Distance (m)")
+            self.lidar_ax.set_ylabel("Vertical Distance (mm)")
+
+            # Set title
+            self.lidar_ax.set_title("LiDAR Scan Visualization")
+
+            # Set aspect ratio (optional, if you want the axes to scale equally)
+            self.lidar_ax.set_aspect('equal', 'box')
+
+            # Set axis scale (example: log scale for distance)
+            self.lidar_ax.set_xscale('linear')
+            self.lidar_ax.set_yscale('linear')
+            
+            # Redraw the canvas
+            self.lidar_canvas.draw()
+
+            # Schedule the next update (e.g., 100 ms)
+            self.lidar_frame.after(10, self.update_lidar_plot)
+
+        # Run the update task in a separate thread
+        thread = threading.Thread(target=update, daemon=True)
+        thread.start()
 
     def create_popup(self, message):
         self.window_wrapper.display_message(message)

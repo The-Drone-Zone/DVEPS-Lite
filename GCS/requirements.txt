@@ -6,3 +6,5 @@ pyyaml
 mavsdk
 asyncio
 pymavlink
+numpy
+matplotlib
