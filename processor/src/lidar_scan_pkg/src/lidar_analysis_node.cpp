@@ -37,12 +37,29 @@ class SLLidarClient : public rclcpp::Node {
 
         // For testing lidar messages (we can change which points we publish later)
         px4_msgs::msg::ObstacleDistance GCS_msg;
+        GCS_msg.timestamp = hrt_absolute_time();
+        GCS_msg.frame = px4_msgs::msg::MAV_FRAME_BODY_FRD;
+        GCS_msg.sensor_type = px4_msgs::msg::MAV_DISTANCE_SENSOR_LASER;
+        GCS_msg.increment = 0.1125f;  // degrees per measurement
+        GCS_msg.min_distance = 100;  // 100 cm = 1 m
+        GCS_msg.max_distance = 4000;  // 4000 cm = 40 m
+        GCS_msg.angle_offset = 0.0f;
+
         for (int i = 0; i < count; i+= 45) {
-            float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-            RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-            GCS_msg.distances[i] = scan->ranges[i];
-            GCS_msg.increment = scan->angle_increment * 45;
+            if (i <= count) {
+                float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+                RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+                GCS_msg.distances[i / 45] = scan->ranges[i]; // need to convert distance to cm (if not already)
+                GCS_msg.increment = scan->angle_increment * 45;
+            }
         }
+        // Try this if the top loop doesn't work
+        // for (int i = 0; i < 72; ++i) {
+        //     float degree = RAD2DEG(scan->angle_min + (scan->angle_increment * i * 45));
+        //     RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i * 45]);
+        //     GCS_msg.distances[i] = scan->ranges[i * 45];
+        //     GCS_msg.increment = scan->angle_increment * 45;
+        // }
 
         RCLCPP_INFO(this->get_logger(), "range_size : %d", count);
         pixhawk_pub->publish(GCS_msg);
