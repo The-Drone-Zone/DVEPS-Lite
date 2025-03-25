@@ -185,6 +185,8 @@ class Drone:
                 obstacle = mavlink2.MAVLink_obstacle_distance_message.decode(msg.payload)
                 print(f"Received OBSTACLE_DISTANCE: {obstacle.distances}")
                 self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {obstacle.distances}")
+                if self.command_tab:
+                    self.command_tab.update_lidar_plot(obstacle)
 
     ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):

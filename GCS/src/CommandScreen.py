@@ -76,7 +76,7 @@ class CommandScreen:
         self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
         self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        self.update_lidar_plot()
+        # self.update_lidar_plot()
 
         ###############################################################################
         ###############################################################################
@@ -344,15 +344,23 @@ class CommandScreen:
 
         self.video_label.after(10, self.update_video) #run every 10ms
 
-    def update_lidar_plot(self):
+    def update_lidar_plot(self, data=None):
         def update():
             # Simulate incoming LiDAR data (Replace this with real data)
-            angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
-            distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+            # angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
+            # distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+
+            # # distances = []
+            angles = []
+            for i in range(len(data.distances)):
+                # distances.append(data.distances[i])
+                angles.append(i * data.increment)
             
             # Convert polar to cartesian coordinates
-            y = distances * np.cos(np.radians(angles))
-            x = distances * np.sin(np.radians(angles))
+            # y = distances * np.cos(np.radians(angles))
+            # x = distances * np.sin(np.radians(angles))
+            y = data.distances * np.cos(np.radians(angles))
+            x = data.distances * np.sin(np.radians(angles))
             
             # Clear previous plot and plot new data
             self.lidar_ax.clear()
@@ -381,7 +389,7 @@ class CommandScreen:
             self.lidar_canvas.draw()
 
             # Schedule the next update (e.g., 100 ms)
-            self.lidar_frame.after(10, self.update_lidar_plot)
+            # self.lidar_frame.after(10, self.update_lidar_plot)
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)
