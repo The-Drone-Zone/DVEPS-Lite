@@ -181,6 +181,10 @@ class Drone:
 
     async def get_lidar_samples(self):
         async for msg in self.drone.subscribe_mavlink_message():
+            #//what i tried did not work so far. 
+        #async for distance in self.drone.telemetry.distance_sensor(): 
+            #print(f"Distance: {distance}")                            // See http://mavsdk-python-docs.s3-website.eu-central-1.amazonaws.com/plugins/telemetry.html#mavsdk.telemetry.Telemetry.distance_sensor
+            #                                                          // See https://github.com/mavlink/MAVSDK-Python
             if msg.msgid == mavlink2.MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
                 obstacle = mavlink2.MAVLink_obstacle_distance_message.decode(msg.payload)
                 print(f"Received OBSTACLE_DISTANCE: {obstacle.distances}")
