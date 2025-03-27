@@ -10,6 +10,7 @@
 
 
 #include <drone_commander_pkg/PosFunctions.hpp>
+#include <drone_commander_pkg/ActuatorControl.hpp>
 #include <stdint.h>
 #include <chrono>
 #include <iostream>
@@ -29,6 +30,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         {
             //passing the drone commander itself into the PositionControl class. 
             position_control_ = nullptr; 
+            uart_ = std::make_shared<UART>();
 
             offboard_control_mode_publisher_ = this->create_publisher<OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
             trajectory_setpoint_publisher_ = this->create_publisher<TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
@@ -48,12 +50,14 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
 
         void initPositionControl(std::shared_ptr<DroneCommander> DC)
         {
+            //initialized this way because of shared messages and subcribers
             position_control_ = std::make_shared<PositionControl>(DC);
         }
 
     private:
         int offboard_setpoint_counter_;
         std::shared_ptr<PositionControl> position_control_;
+        std::shared_ptr<UART> uart_;
 
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
@@ -119,6 +123,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 3); //Get rid of magic numbers later
 
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
+                uart_->sendDistance(0); //CHANGE TO CORRECT DISTANCE LATER
                 hover_flag_ = true;
                 stop_flag_ = false;
             }
