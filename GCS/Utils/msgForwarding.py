@@ -16,8 +16,8 @@ class MsgForwarding:
         BAUDRATE = 57600
 
         # === CONFIGURE UDP FORWARDING ===
-        UDP_TARGETS = [("127.0.0.1", 14550),  # MAVSDK
-                    ("127.0.0.1", 14551)]  # pymavlink
+        UDP_TARGETS = [("127.0.0.1", 14551),  # MAVSDK
+                    ("127.0.0.1", 14552)]  # pymavlink
         
 
         while not self.stop:
