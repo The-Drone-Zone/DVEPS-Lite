@@ -51,7 +51,7 @@ class Drone:
     async def mavsdk_setup(self):
         # Connect to Drone
         self.drone = System(mavsdk_server_address="localhost", port=50051)
-        await self.drone.connect(system_address="udp://127.0.0.1:14550")
+        await self.drone.connect(system_address="udp://127.0.0.1:14551")
         print('Connected to MAVSDK!')
 
         # if os.name == "nt":  # Windows
@@ -98,7 +98,7 @@ class Drone:
         self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
 
     def mavlink_setup(self):
-        self.mavlink_connection = mavutil.mavlink_connection("udp:127.0.0.1:14551")
+        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552")
         self.mavlink_connection.wait_heartbeat()
         print("Connected to MAVLink!")
         # Start loop to receive LiDAR data

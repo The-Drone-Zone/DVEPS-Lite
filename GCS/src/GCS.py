@@ -7,7 +7,7 @@ import threading
 if __name__ == "__main__":
     mavsdk_process = None
     forwarding = MsgForwarding()
-    forwarding_thread = threading.Thread(target=forwarding.forward_mavlink_msgs, daemon=True)
+    forwarding_thread = threading.Thread(target=forwarding.forwardMavLinkMsgs, daemon=True)
     forwarding_thread.start()
     try:
         # Run mavsdk_server in the background
@@ -21,7 +21,7 @@ if __name__ == "__main__":
             mavsdk_server_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../mavsdk_server_linux.exe")
             # Change 3rd argument if using udp simulation (setup for radio)
             # mavsdk_process = subprocess.Popen([mavsdk_server_path, "--url", "serial:///dev/ttyUSB0:57600"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        mavsdk_process = subprocess.Popen([mavsdk_server_path, "--url", "udp://:14550"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        mavsdk_process = subprocess.Popen([mavsdk_server_path, "--url", "udp://:14551"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Start GCS Application
         app = Initialize()
 
