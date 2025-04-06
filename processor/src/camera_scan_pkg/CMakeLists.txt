@@ -14,6 +14,13 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(CUDA REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GSTREAMER REQUIRED
+  gstreamer-1.0>=1.14
+  gstreamer-base-1.0
+  gstreamer-app-1.0
+)
+
 
 file(READ "/proc/1/cgroup" cgroup_content)
 if(cgroup_content MATCHES "docker")
@@ -45,6 +52,9 @@ ament_target_dependencies(img_pub_node
   image_transport
   OpenCV
 )
+target_include_directories(img_pub_node PRIVATE ${GSTREAMER_INCLUDE_DIRS})
+target_link_libraries(img_pub_node ${OpenCV_LIBS} ${GSTREAMER_LIBRARIES})
+
 
 add_executable(img_analysis_node src/img_analysis_node.cpp)
 ament_target_dependencies(img_analysis_node
@@ -61,8 +71,15 @@ ament_target_dependencies(img_analysis_node
 rosidl_target_interfaces(img_analysis_node
   camera_scan_pkg "rosidl_typesupport_cpp")
 
+# target_link_libraries(img_pub_node ${OpenCV_LIBS})
+
+
 include_directories(${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}) # For generated message headers
+include_directories(
+  ${GSTREAMER_INCLUDE_DIRS}
+  include
+)
 
 link_directories(${OpenCV_LIB_DIR} ${CUDA_LIBRARIES})
 target_link_libraries(img_analysis_node ${OpenCV_LIBS} opencv_core opencv_imgproc opencv_cudaimgproc)
