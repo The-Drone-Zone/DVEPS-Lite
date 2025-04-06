@@ -37,10 +37,10 @@ class SLLidarClient : public rclcpp::Node {
 
         // For testing lidar messages (we can change which points we publish later)
         px4_msgs::msg::ObstacleDistance GCS_msg;
-        GCS_msg.timestamp = hrt_absolute_time();
-        GCS_msg.frame = px4_msgs::msg::MAV_FRAME_BODY_FRD;
-        GCS_msg.sensor_type = px4_msgs::msg::MAV_DISTANCE_SENSOR_LASER;
-        GCS_msg.increment = 0.1125f;  // degrees per measurement
+        GCS_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
+        GCS_msg.frame = px4_msgs::msg::ObstacleDistance::MAV_FRAME_BODY_FRD;
+        GCS_msg.sensor_type = px4_msgs::msg::ObstacleDistance::MAV_DISTANCE_SENSOR_LASER;
+        GCS_msg.increment = 1125;  // degrees per measurement
         GCS_msg.min_distance = 100;  // 100 cm = 1 m
         GCS_msg.max_distance = 4000;  // 4000 cm = 40 m
         GCS_msg.angle_offset = 0.0f;
@@ -49,8 +49,8 @@ class SLLidarClient : public rclcpp::Node {
             if (i <= count) {
                 float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
                 RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-                GCS_msg.distances[i / 45] = scan->ranges[i]; // need to convert distance to cm (if not already)
-                GCS_msg.increment = scan->angle_increment * 45;
+                GCS_msg.distances[i / 45] = scan->ranges[i] * 100; // need to convert distance to cm (if not already)
+                GCS_msg.increment = scan->angle_increment * 45 * 10000;
             }
         }
         // Try this if the top loop doesn't work
