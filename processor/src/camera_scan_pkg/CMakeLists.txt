@@ -5,6 +5,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+option(USE_APPSINK_ONLY "Use only appsink in GStreamer pipeline (no display)" OFF)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -44,6 +46,11 @@ rosidl_generate_interfaces(camera_scan_pkg
 )
 
 add_executable(img_pub_node src/img_raw_pub_node.cpp)
+
+if(USE_APPSINK_ONLY)
+  target_compile_definitions(img_pub_node PRIVATE USE_APPSINK_ONLY)
+endif()
+
 ament_target_dependencies(img_pub_node
   rclcpp
   std_msgs

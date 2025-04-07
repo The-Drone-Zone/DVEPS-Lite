@@ -116,13 +116,13 @@ class ImageAnalysis : public rclcpp::Node {
             publisher_->publish(out_msg);
 
             // Convert and Publish Image (For Testing Only)
-            // sensor_msgs::msg::Image::SharedPtr image_msg;
-            // cv_bridge::CvImage cv_image;
-            // cv_image.image = origFrame; // frame or origFrame
-            // cv_image.encoding = "mono8";
-            // image_msg = cv_image.toImageMsg();
-            // image_msg->header.stamp = this->now();
-            // image_publisher_->publish(*image_msg);
+            sensor_msgs::msg::Image::SharedPtr image_msg;
+            cv_bridge::CvImage cv_image;
+            cv_image.image = origFrame; // frame or origFrame
+            cv_image.encoding = "mono8";
+            image_msg = cv_image.toImageMsg();
+            image_msg->header.stamp = this->now();
+            image_publisher_->publish(*image_msg);
         }
 
         // End time
@@ -333,7 +333,7 @@ class ImageAnalysis : public rclcpp::Node {
         msg = boundingBoxes(contours());
         featureDetection(msg);
         msg = TrackOpticalFlow(msg);
-        // draw(msg); // For Testing Only
+        draw(msg); // For Testing Only
         return msg;
     }
 };
