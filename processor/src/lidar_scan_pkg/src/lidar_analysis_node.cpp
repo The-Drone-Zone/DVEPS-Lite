@@ -36,7 +36,7 @@ class SLLidarClient : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
 
         // For testing lidar messages (we can change which points we publish later)
-        px4_msgs::msg::ObstacleDistance GCS_msg;
+        px4_msgs::msg::ObstacleDistance GCS_msg = px4_msgs::msg::ObstacleDistance();
         GCS_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
         GCS_msg.frame = px4_msgs::msg::ObstacleDistance::MAV_FRAME_BODY_FRD;
         GCS_msg.sensor_type = px4_msgs::msg::ObstacleDistance::MAV_DISTANCE_SENSOR_LASER;

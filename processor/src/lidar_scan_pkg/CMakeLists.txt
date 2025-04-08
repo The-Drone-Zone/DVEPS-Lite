@@ -45,6 +45,15 @@ ament_target_dependencies(lidar_composition
   custom_msg_pkg
 )
 
+add_executable(heartbeat src/heartbeat.cpp ${RPLIDAR_SDK_SRC})
+ament_target_dependencies(heartbeat
+  rclcpp
+  std_srvs
+  sensor_msgs
+  custom_msg_pkg
+  px4_msgs
+)
+
 add_executable(lidar_analysis_node src/lidar_analysis_node.cpp)
 ament_target_dependencies(lidar_analysis_node
   rclcpp
@@ -55,7 +64,7 @@ ament_target_dependencies(lidar_analysis_node
 )
 
 install(
-  TARGETS lidar_node lidar_composition lidar_analysis_node
+  TARGETS heartbeat lidar_node lidar_composition lidar_analysis_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
