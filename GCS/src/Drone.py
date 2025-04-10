@@ -20,7 +20,8 @@ class Drone:
         self.latitude = 0
         self.longitude = 0
         self.connected = False
-        self.disconnect_counter = 0 # For checking connection (2 missed/false connections = disconnection)
+        self.disconnect_counter = 0 # For checking connection (3 missed/false connections = disconnection)
+        self.connect_counter = 0 # For checking connection (2 True = connected)
         self.gps_ok = False
 
         self.logs = logs
@@ -41,10 +42,6 @@ class Drone:
     def run_mavsdk_async_loop(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
-
-    # def run_mavlink_async_loop(self):
-    #     asyncio.set_event_loop(self.mavlink_loop)
-    #     self.mavlink_loop.run_forever()
 
     async def mavsdk_setup(self):
         # Connect to Drone
@@ -137,35 +134,28 @@ class Drone:
 
     async def check_drone_connection(self):
         async for state in self.drone.core.connection_state():
-            print(f"Connection: {state.is_connected}")
-            if state.is_connected and not self.connected:
+            # print(f"Connection: {state.is_connected} | connect_count: {self.connect_counter} | disconnect_count: {self.disconnect_counter}") # For DEBUGGING
+            if state.is_connected and not self.connected and self.connect_counter >= 1:
                 self.logs.addDroneLog("-- Connected to drone!")
                 self.connected = True
+                self.disconnect_counter = 0
+                self.connect_counter += 1
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
-            elif not state.is_connected and self.connected:
+            elif not state.is_connected and self.connected and self.disconnect_counter >= 3: # 3rd false connection in a row indicates disconnection
                 self.logs.addDroneLog("-- Disconnected from drone")
                 self.logs.addDroneLog("Waiting for drone to connect...")
                 self.connected = False
+                self.connect_counter = 0
+                self.disconnect_counter += 1
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
-
-            ### IDK WHY BUT WITH FORWARDING WE DONT NEED THE DISCONNECT COUNTER (Its only one true/false instead of the weird pattern) ###
-            # if state.is_connected and not self.connected:
-            #     self.logs.addDroneLog("-- Connected to drone!")
-            #     self.connected = True
-            #     self.disconnect_counter = 0
-            #     if self.command_tab:
-            #         self.command_tab.update_drone_connected()
-            # elif not state.is_connected and self.connected and self.disconnect_counter >= 2: # 3rd false connection in a row
-            #     self.logs.addDroneLog("-- Disconnected from drone")
-            #     self.logs.addDroneLog("Waiting for drone to connect...")
-            #     self.connected = False
-            #     self.disconnect_counter += 1
-            #     if self.command_tab:
-            #         self.command_tab.update_drone_connected()
-            # elif not state.is_connected:
-            #     self.disconnect_counter += 1
+            elif not state.is_connected: # increase disconnect counter on false is_connected
+                self.disconnect_counter += 1
+                self.connect_counter = 0
+            elif state.is_connected: # increase connect counter on true is_connected
+                self.connect_counter += 1
+                self.disconnect_counter = 0
 
     async def check_drone_health(self):
         async for health in self.drone.telemetry.health():
