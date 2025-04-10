@@ -24,7 +24,13 @@ bool UART::initUART() {
     tcgetattr(uart_file_desctiptor, &options);
     cfsetispeed(&options, BAUD_RATE);
     cfsetospeed(&options, BAUD_RATE);
-    options.c_cflag = UART_CONFIG_FLAGS;
+    options.c_cflag &= ~PARENB; // No parity
+    options.c_cflag &= ~CSTOPB; // 1 stop bit
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= CS8;     // 8 data bits
+    options.c_cflag |= CREAD | CLOCAL;
+    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // Raw input
+    options.c_oflag &= ~OPOST; // Raw output
     tcsetattr(uart_file_desctiptor, TCSANOW, &options);
 
     return true;

@@ -123,7 +123,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 3); //Get rid of magic numbers later
 
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
-                uart_->sendDistance(0); //CHANGE TO CORRECT DISTANCE LATER
+                uart_->sendDistance(2000); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
                 hover_flag_ = true;
                 stop_flag_ = false;
             }
@@ -193,6 +193,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
             }
             else if (resume_flag_){
+                uart_->sendDistance(1000); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
                 resume_flag_ = false;
             }

@@ -16,7 +16,7 @@ public:
 
 private:
     int uart_file_desctiptor;
-    const char* UART_PORT = "/dev/ttyTHS1";
+    const char* UART_PORT = "/dev/ttyACM0";
     const int BAUD_RATE = B9600;
     const int UART_FLAGS = O_RDWR | O_NOCTTY | O_NDELAY;
     const int UART_CONFIG_FLAGS = CS8 | CREAD | CLOCAL;
