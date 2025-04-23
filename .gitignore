@@ -39,6 +39,7 @@ XXXOLDXXX/
 processor/log/
 processor/install/
 processor/src/vision_opencv/
+GCS/logs/
 
 #temprary folder
 processor/src/laser_scan_pkg
