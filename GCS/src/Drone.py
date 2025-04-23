@@ -20,6 +20,8 @@ class Drone:
         self.connected = False
         self.disconnect_counter = 0 # For checking connection (2 missed/false connections = disconnection)
         self.gps_ok = False
+        self.armable = False
+        self.battery_percent = 0
 
         self.logs = logs
         self.settings = settings
@@ -95,7 +97,10 @@ class Drone:
     async def print_battery(self):
         async for battery in self.drone.telemetry.battery():
             if self.connected and self.gps_ok:
+                self.battery_percent = battery.remaining_percent
                 self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
+                if self.command_tab:
+                    self.command_tab.update_drone_battery()
             await asyncio.sleep(2)
 
     async def print_gps_info(self):
@@ -140,6 +145,7 @@ class Drone:
 
     async def check_drone_health(self):
         async for health in self.drone.telemetry.health():
+            # Check GPS estimates
             print(f"global: {health.is_global_position_ok} | local: {health.is_local_position_ok}") # Keep for GPS debugging
             if health.is_global_position_ok and health.is_home_position_ok and not self.gps_ok:
                 self.gps_ok = True
@@ -151,6 +157,17 @@ class Drone:
                 self.gps_ok = False
                 self.logs.addDroneLog("-- Global position estimate FAILED")
                 self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
+            # Check if drone is armable (pre-flight checklist)
+            if health.is_armable and not self.armable:
+                self.armable = True
+                self.logs.addDroneLog("-- Drone is armable and ready for flight")
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
+            elif (not health.is_armable) and self.armable:
+                self.armable = False
+                self.logs.addDroneLog("-- Drone not armable, check pre-flight errors")
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
             await asyncio.sleep(1)
