@@ -294,12 +294,14 @@ class CommandScreen:
             self.drone_connection_container.config(bg="tomato")
 
     def update_drone_battery(self):
-        self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%")
         if self.drone.battery_percent > 65:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="lightgreen")
             self.battery_container.config(bg="lightgreen")
         elif self.drone.battery_percent > 30:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="yellow")
             self.battery_container.config(bg="yellow")
         else:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="tomato")
             self.battery_container.config(bg="tomato")
 
     def create_video_display(self):
@@ -324,3 +326,6 @@ class CommandScreen:
             self.video_label.config(image=imgtk)
 
         self.video_label.after(10, self.update_video) #run every 10ms
+
+    def create_popup(self, message):
+        self.window_wrapper.display_message(message)

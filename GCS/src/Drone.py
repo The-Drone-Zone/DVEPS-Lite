@@ -93,14 +93,17 @@ class Drone:
         async for status_text in self.drone.telemetry.status_text():
             if self.connected:
                 self.logs.addDroneLog(f"Status: {status_text.type}: {status_text.text}")
+                if "Arming denied" in status_text.text:
+                    self.command_tab.create_popup(f"{status_text.type}: {status_text.text}")
 
     async def print_battery(self):
         async for battery in self.drone.telemetry.battery():
-            if self.connected and self.gps_ok:
+            if self.connected:
                 self.battery_percent = battery.remaining_percent
-                self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
                 if self.command_tab:
                     self.command_tab.update_drone_battery()
+            if self.connected and self.gps_ok:
+                self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
             await asyncio.sleep(2)
 
     async def print_gps_info(self):
@@ -126,7 +129,7 @@ class Drone:
 
     async def check_drone_connection(self):
         async for state in self.drone.core.connection_state():
-            print(f"Connection: {state.is_connected}")
+            # print(f"Connection: {state.is_connected}") # Keep for future debugging
             if state.is_connected and not self.connected:
                 self.logs.addDroneLog("-- Connected to drone!")
                 self.connected = True
@@ -145,8 +148,9 @@ class Drone:
 
     async def check_drone_health(self):
         async for health in self.drone.telemetry.health():
+
             # Check GPS estimates
-            print(f"global: {health.is_global_position_ok} | local: {health.is_local_position_ok}") # Keep for GPS debugging
+            # print(f"global: {health.is_global_position_ok} | local: {health.is_local_position_ok}") # Keep for GPS debugging
             if health.is_global_position_ok and health.is_home_position_ok and not self.gps_ok:
                 self.gps_ok = True
                 self.logs.addDroneLog("-- Global position estimate OK")
@@ -159,6 +163,7 @@ class Drone:
                 self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
+
             # Check if drone is armable (pre-flight checklist)
             if health.is_armable and not self.armable:
                 self.armable = True
