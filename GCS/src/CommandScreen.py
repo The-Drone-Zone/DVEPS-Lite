@@ -39,6 +39,14 @@ class CommandScreen:
             "map_frame": tk.Button,
         }
 
+        # Header variables
+        self.header_frame: tk.Frame = None
+        self.drone_connection_container: tk.Frame = None
+        self.drone_connection_label: tk.Label = None
+        self.battery_container: tk.Frame = None
+        self.battery_label: tk.Label = None
+        self.create_header()
+
         # major command frames
         self.video_frame: tk.Frame = None
         self.video_frame_width = None
@@ -107,21 +115,53 @@ class CommandScreen:
 
         self.create_buttons()
 
-        # Drone connection display
+        self.update_drone_connected()
+        self.update_drone_battery()
+
+    def create_header(self):
+        # Header frame
+        self.header_frame = tk.Frame(self.command_tab, bg="white")
+        self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
+
+        # Configure grid layout for the header_frame
+        self.header_frame.columnconfigure(0, weight=1)
+        self.header_frame.columnconfigure(1, weight=1)
+
+        # ====== LEFT TEXT ======
+        # Container frame to simulate padding/border
+        self.drone_connection_container = tk.Frame(self.header_frame, bg="tomato")
+        self.drone_connection_container.grid(row=0, column=0, sticky="w", padx=(0, 5))
+
+        # Drone connection display inside red container
         self.drone_connection_label = tk.Label(
-            self.command_tab,
+            self.drone_connection_container,
             text="Drone Not Connected",
-            justify=tk.CENTER,
+            bg="tomato",
+            anchor="w",
             font=("Helvetica", 15),
         )
-        self.drone_connection_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
-        self.update_drone_connected()
+        self.drone_connection_label.pack(fill="both", padx=40, pady=2)
+
+        # ====== RIGHT TEXT ======
+        # Container frame to simulate padding/border
+        self.battery_container = tk.Frame(self.header_frame, bg="tomato")
+        self.battery_container.grid(row=0, column=1, sticky="e", padx=(5, 0))
+
+        # Battery % Display
+        self.battery_label = tk.Label(
+            self.battery_container,
+            text="Battery Remaining: N/A",
+            bg="tomato",
+            anchor="e",
+            font=("Helvetica", 15),
+        )
+        self.battery_label.pack(fill="both", padx=40, pady=2)
 
     def create_frames(self):
 
         # grid_row/column configure ensures row or column fills available space with equal weight
-        self.command_tab.grid_rowconfigure(0, weight=3)
-        self.command_tab.grid_rowconfigure(1, weight=2)
+        self.command_tab.grid_rowconfigure(1, weight=3)
+        self.command_tab.grid_rowconfigure(2, weight=2)
         self.command_tab.grid_columnconfigure(0, weight=1)
         self.command_tab.grid_columnconfigure(1, weight=1)
 
@@ -131,7 +171,7 @@ class CommandScreen:
             window=self.command_tab, name="video_frame", bg="lightblue"
         )
         self.frame_wrapper.add_to_window(
-            self.video_frame, row=0, column=0, sticky="nsew"
+            self.video_frame, row=1, column=0, sticky="nsew"
         )
 
         # Create lidar frame
@@ -139,21 +179,21 @@ class CommandScreen:
             window=self.command_tab, name="lidar_frame", bg="lightgreen"
         )
         self.frame_wrapper.add_to_window(
-            self.lidar_frame, row=0, column=1, sticky="nsew"
+            self.lidar_frame, row=1, column=1, sticky="nsew"
         )
 
         # Create Map frame
         self.map_frame = self.frame_wrapper.create_frame(
             window=self.command_tab, name="map_frame", bg="yellow"
         )
-        self.frame_wrapper.add_to_window(self.map_frame, row=1, column=0, sticky="nsew")
+        self.frame_wrapper.add_to_window(self.map_frame, row=2, column=0, sticky="nsew")
 
         # Create Commands frame
         self.commands_frame = self.frame_wrapper.create_frame(
             window=self.command_tab, name="command_frame", bg="red"
         )
         self.frame_wrapper.add_to_window(
-            self.commands_frame, row=1, column=1, sticky="nsew"
+            self.commands_frame, row=2, column=1, sticky="nsew"
         )
 
     def create_buttons(self):
@@ -243,16 +283,30 @@ class CommandScreen:
         self.logs.addUserLog("User minimized a view in the command tab")
 
     def update_drone_connected(self):
-        if self.drone.connected and self.drone.gps_ok:
-            self.drone_connection_label.config(text="Drone Ready")
+        if self.drone.connected and self.drone.gps_ok and self.drone.armable:
+            self.drone_connection_label.config(text="Drone Ready", bg="lightgreen")
+            self.drone_connection_container.config(bg="lightgreen")
         elif self.drone.connected:
-            self.drone_connection_label.config(text="Drone Connected")
+            self.drone_connection_label.config(text="Drone Connected", bg="yellow")
+            self.drone_connection_container.config(bg="yellow")
         else:
-            self.drone_connection_label.config(text="Drone Not Connected")
+            self.drone_connection_label.config(text="Drone Not Connected", bg="tomato")
+            self.drone_connection_container.config(bg="tomato")
+
+    def update_drone_battery(self):
+        if self.drone.battery_percent > 65:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="lightgreen")
+            self.battery_container.config(bg="lightgreen")
+        elif self.drone.battery_percent > 30:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="yellow")
+            self.battery_container.config(bg="yellow")
+        else:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="tomato")
+            self.battery_container.config(bg="tomato")
 
     def create_video_display(self):
         self.video_label = tk.Label(self.video_frame)
-        self.video_label.grid(row=0, column=0, sticky="nsew")
+        self.video_label.grid(row=1, column=0, sticky="nsew")
 
 
     def update_video(self):
@@ -272,3 +326,6 @@ class CommandScreen:
             self.video_label.config(image=imgtk)
 
         self.video_label.after(10, self.update_video) #run every 10ms
+
+    def create_popup(self, message):
+        self.window_wrapper.display_message(message)
