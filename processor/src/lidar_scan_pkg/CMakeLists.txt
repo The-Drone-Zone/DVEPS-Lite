@@ -26,6 +26,7 @@ include_directories(
   ${RPLIDAR_SDK_PATH}/include
   ${RPLIDAR_SDK_PATH}/src
   ${Boost_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../mavlink
 )
 
 add_executable(lidar_node	src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
@@ -45,15 +46,6 @@ ament_target_dependencies(lidar_composition
   custom_msg_pkg
 )
 
-add_executable(heartbeat src/heartbeat.cpp ${RPLIDAR_SDK_SRC})
-ament_target_dependencies(heartbeat
-  rclcpp
-  std_srvs
-  sensor_msgs
-  custom_msg_pkg
-  px4_msgs
-)
-
 add_executable(lidar_analysis_node src/lidar_analysis_node.cpp)
 ament_target_dependencies(lidar_analysis_node
   rclcpp
@@ -63,8 +55,12 @@ ament_target_dependencies(lidar_analysis_node
   px4_msgs
 )
 
+add_executable(obstacle_distance_node src/obstacle_distance_node.cpp)
+ament_target_dependencies(obstacle_distance_node 
+  rclcpp)
+
 install(
-  TARGETS heartbeat lidar_node lidar_composition lidar_analysis_node
+  TARGETS lidar_node lidar_composition lidar_analysis_node obstacle_distance_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
