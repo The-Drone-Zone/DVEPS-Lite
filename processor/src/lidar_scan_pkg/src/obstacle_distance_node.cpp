@@ -17,7 +17,7 @@ public:
         lidar_info_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
             "scan", rclcpp::SensorDataQoS(), std::bind(&ObstacleDistancePublisher::send_obstacle_distance, this, std::placeholders::_1));
 
-        serial_port_ = open_serial("/dev/ttyUSB0");
+        serial_port_ = open_serial("/dev/ttyUSB1");
         if (serial_port_ < 0) {
             RCLCPP_ERROR(this->get_logger(), "Failed to open serial port");
             return;
@@ -63,7 +63,7 @@ private:
         mavlink_obstacle_distance_t dist;
         dist.time_usec = this->now().nanoseconds() / 1000;
         dist.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        dist.increment = 5;
+        dist.increment = count / 72;
         dist.min_distance = 100;
         dist.max_distance = 50000;
         dist.increment_f = NAN;
@@ -72,24 +72,13 @@ private:
         for (int i = 0; i < 72; ++i) {
             dist.distances[i] = 40000;
         }
-        // dist.distances[0] = 20000;
-        // dist.distances[1] = 18000;
-        // dist.distances[2] = 15000;
-        // dist.distances[3] = 15000;  
-        // dist.distances[4] = 15000; 
-        // dist.distances[5] = 16000;
-        // dist.distances[6] = 17000;
-        // dist.distances[7] = 19000;
-        // dist.distances[8] = 20000;
-        // dist.distances[9] = 25000;
 
         int incr = count / 72;
         for (int i = 0; i < count; i+= incr) {
             if (i <= count) {
-                // float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-                // RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-                dist.distances[i / incr] = scan->ranges[i] / 10; // need to convert distance to cm (starts in mm)
-                dist.increment = scan->angle_increment * incr;
+                float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+                RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+                dist.distances[i / incr] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
             }
         }
 
