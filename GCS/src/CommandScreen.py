@@ -76,7 +76,7 @@ class CommandScreen:
         self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
         self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # self.update_lidar_plot() # For Simulating ONLY
+        self.update_lidar_plot() # For Simulating ONLY
 
         ###############################################################################
         ###############################################################################
@@ -348,36 +348,35 @@ class CommandScreen:
     def update_lidar_plot(self, data=None):
         def update():
             # Simulate incoming LiDAR data (Replace this with real data)
-            # angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
-            # distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+            angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
+            distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
 
             ## For actual display
-            # # distances = []
-            angles = []
-            for i in range(len(data.distances)):
-                # distances.append(data.distances[i])
-                angles.append(i * data.increment)
-                data.distances[i] /= 100.0 # Convert distances from cm to m
+            # angles = []
+            # for i in range(len(data.distances)):
+            #     # distances.append(data.distances[i])
+            #     angles.append(i * data.increment)
+            #     data.distances[i] /= 100.0 # Convert distances from cm to m
 
             # print(f"Angles: {angles}")
             # print(f"Distances {data.distances}")
             
             # Convert polar to cartesian coordinates
-            # y = distances * np.cos(np.radians(angles)) # For simulated display
-            # x = distances * np.sin(np.radians(angles)) # For simulated display
-            y = data.distances * np.cos(np.radians(angles)) # For actual display
-            x = data.distances * np.sin(np.radians(angles)) # For actual display
+            y = distances * np.cos(np.radians(angles)) # For simulated display
+            x = distances * np.sin(np.radians(angles)) # For simulated display
+            # y = data.distances * np.cos(np.radians(angles)) # For actual display
+            # x = data.distances * np.sin(np.radians(angles)) # For actual display
             # print(f"X: {x}")
             # print(f"Y: {y}")
             
             # Clear previous plot and plot new data
             self.lidar_ax.clear()
-            self.lidar_ax.scatter([0], [0], color='red', s=500) # Represents drone position
+            self.lidar_ax.scatter([0], [0.5], color='red', s=500) # Represents drone position
             self.lidar_ax.scatter(x, y, color='blue', s=25)  # Draw lidar points
 
             # Set axis limits
-            self.lidar_ax.set_xlim(-3, 3)
-            self.lidar_ax.set_ylim(-1, 1)
+            self.lidar_ax.set_xlim(-20, 20)
+            self.lidar_ax.set_ylim(0, 40)
 
             # Set axis labels
             self.lidar_ax.set_xlabel("Horizontal Distance (m)")
@@ -397,7 +396,7 @@ class CommandScreen:
             self.lidar_canvas.draw()
 
             # Schedule the next update (e.g., 100 ms)
-            # self.lidar_frame.after(10, self.update_lidar_plot)
+            self.lidar_frame.after(10, self.update_lidar_plot)
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)
