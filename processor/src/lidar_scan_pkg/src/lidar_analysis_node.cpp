@@ -71,42 +71,42 @@ class SLLidarClient : public rclcpp::Node {
                           int count )
     {
 
-        sensor_msgs::msg::LaserScan current_scan = *scan;
-        float sum_of_potential_x = 0.0;
-        float sum_of_potential_y = 0.0;
-        bool avoid = false;
+        // sensor_msgs::msg::LaserScan current_scan = *scan;
+        // float sum_of_potential_x = 0.0;
+        // float sum_of_potential_y = 0.0;
+        // bool avoid = false;
 
-        custom_msg_pkg::msg::LidarPosition msg;
-        msg.stop = false;
+        // custom_msg_pkg::msg::LidarPosition msg;
+        // msg.stop = false;
         
-        for(int i = 0; i < count; ++i) {
-            float d0 = 25; // ignore values under 20 meters we missed an object and our design was flawed. also a requiremtn to detect objects at 20 meters
-            float k = 0.5; //gain / weightedness of potential field
+        // for(int i = 0; i < count; ++i) {
+        //     float d0 = 25; // ignore values under 20 meters we missed an object and our design was flawed. also a requiremtn to detect objects at 20 meters
+        //     float k = 0.5; //gain / weightedness of potential field
             
-            //filter our object whose values are under 20 meters
-            if(current_scan.ranges[i] < d0 && current_scan.ranges[i] > current_scan.range_min) {
-                msg.stop = true;
+        //     //filter our object whose values are under 20 meters
+        //     if(current_scan.ranges[i] < d0 && current_scan.ranges[i] > current_scan.range_min) {
+        //         msg.stop = true;
 
-                //MEASURED IN RADIANS
-                float X_radians = cos(scan->angle_min + scan->angle_increment * i);
-                float Y_radians = sin(scan->angle_min + scan->angle_increment * i);
-                float potential = -.5 * k * pow( ( (1/current_scan.ranges[i]) - (1/d0) ), 2 );
-                sum_of_potential_x += X_radians * potential;
-                sum_of_potential_y += Y_radians * potential;
-            }
+        //         //MEASURED IN RADIANS
+        //         float X_radians = cos(scan->angle_min + scan->angle_increment * i);
+        //         float Y_radians = sin(scan->angle_min + scan->angle_increment * i);
+        //         float potential = -.5 * k * pow( ( (1/current_scan.ranges[i]) - (1/d0) ), 2 );
+        //         sum_of_potential_x += X_radians * potential;
+        //         sum_of_potential_y += Y_radians * potential;
+        //     }
             
-        }
+        // }
 
-        msg.sum_of_potential_x = sum_of_potential_x;
-        msg.sum_of_potential_y = sum_of_potential_y;
+        // msg.sum_of_potential_x = sum_of_potential_x;
+        // msg.sum_of_potential_y = sum_of_potential_y;
 
-        //XYZ COORDINATE MAPPING GOES HERE
+        // //XYZ COORDINATE MAPPING GOES HERE
         
-        msg.z.assign(scan->ranges.begin(), scan->ranges.end());
-        msg.x.resize(count, 0.0);
-        msg.y.resize(count, 0.0);
+        // msg.z.assign(scan->ranges.begin(), scan->ranges.end());
+        // msg.x.resize(count, 0.0);
+        // msg.y.resize(count, 0.0);
 
-        pub->publish(msg);
+        // pub->publish(msg);
     }
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
