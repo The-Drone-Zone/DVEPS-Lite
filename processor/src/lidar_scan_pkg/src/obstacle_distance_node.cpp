@@ -7,6 +7,8 @@
 #include "common/mavlink.h"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
+#define RAD2DEG(x) ((x) * 180.0 / M_PI)
+
 class ObstacleDistancePublisher : public rclcpp::Node {
 public:
     ObstacleDistancePublisher()
