@@ -76,7 +76,7 @@ class CommandScreen:
         self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
         self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        self.update_lidar_plot() # For Simulating ONLY
+        # self.update_lidar_plot() # For Simulating ONLY
 
         ###############################################################################
         ###############################################################################
@@ -357,7 +357,7 @@ class CommandScreen:
             for i in range(len(data.distances)):
                 # distances.append(data.distances[i])
                 angles.append(i * data.increment)
-                data.distances[i] /= 100 # Convert distances from cm to m
+                data.distances[i] /= 100.0 # Convert distances from cm to m
 
             # print(f"Angles: {angles}")
             # print(f"Distances {data.distances}")
@@ -372,12 +372,12 @@ class CommandScreen:
             
             # Clear previous plot and plot new data
             self.lidar_ax.clear()
-            self.lidar_ax.scatter([0], [0.5], color='red', s=500) # Represents drone position
+            self.lidar_ax.scatter([0], [0], color='red', s=500) # Represents drone position
             self.lidar_ax.scatter(x, y, color='blue', s=25)  # Draw lidar points
 
             # Set axis limits
-            self.lidar_ax.set_xlim(-35, 35)
-            self.lidar_ax.set_ylim(0, 50)
+            self.lidar_ax.set_xlim(-3, 3)
+            self.lidar_ax.set_ylim(-1, 1)
 
             # Set axis labels
             self.lidar_ax.set_xlabel("Horizontal Distance (m)")
