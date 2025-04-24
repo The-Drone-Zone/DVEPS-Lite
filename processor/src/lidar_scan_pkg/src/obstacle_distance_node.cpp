@@ -5,12 +5,16 @@
 #include <chrono>
 #include <cstring>
 #include "common/mavlink.h"
+#include "sensor_msgs/msg/laser_scan.hpp"
 
 class ObstacleDistancePublisher : public rclcpp::Node {
 public:
     ObstacleDistancePublisher()
         : Node("obstacle_distance_publisher")
     {
+        lidar_info_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+            "scan", rclcpp::SensorDataQoS(), std::bind(&ObstacleDistancePublisher::send_obstacle_distance, this, std::placeholders::_1));
+
         serial_port_ = open_serial("/dev/ttyUSB0");
         if (serial_port_ < 0) {
             RCLCPP_ERROR(this->get_logger(), "Failed to open serial port");
@@ -31,6 +35,7 @@ public:
 private:
     int serial_port_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
 
     int open_serial(const std::string& port) {
         int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
@@ -51,7 +56,11 @@ private:
         return fd;
     }
 
-    void send_obstacle_distance() {
+    void send_obstacle_distance(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
+        int count = scan->scan_time / scan->time_increment;
+        RCLCPP_INFO(this->get_logger(), "I heard a laser scan %s[%d]", scan->header.frame_id.c_str(), count);
+        RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
+
         mavlink_message_t msg;
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
 
@@ -67,16 +76,26 @@ private:
         for (int i = 0; i < 72; ++i) {
             dist.distances[i] = 40000;
         }
-        dist.distances[0] = 20000;
-        dist.distances[1] = 18000;
-        dist.distances[2] = 15000;
-        dist.distances[3] = 15000;  
-        dist.distances[4] = 15000; 
-        dist.distances[5] = 16000;
-        dist.distances[6] = 17000;
-        dist.distances[7] = 19000;
-        dist.distances[8] = 20000;
-        dist.distances[9] = 25000;
+        // dist.distances[0] = 20000;
+        // dist.distances[1] = 18000;
+        // dist.distances[2] = 15000;
+        // dist.distances[3] = 15000;  
+        // dist.distances[4] = 15000; 
+        // dist.distances[5] = 16000;
+        // dist.distances[6] = 17000;
+        // dist.distances[7] = 19000;
+        // dist.distances[8] = 20000;
+        // dist.distances[9] = 25000;
+
+        int incr = count / 72;
+        for (int i = 0; i < count; i+= incr) {
+            if (i <= count) {
+                // float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+                // RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+                dist.distances[i / incr] = scan->ranges[i] / 10; // need to convert distance to cm (starts in mm)
+                dist.increment = scan->angle_increment * incr;
+            }
+        }
 
         mavlink_msg_obstacle_distance_pack(
             1, 200, &msg,

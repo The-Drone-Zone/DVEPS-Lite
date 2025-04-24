@@ -57,7 +57,9 @@ ament_target_dependencies(lidar_analysis_node
 
 add_executable(obstacle_distance_node src/obstacle_distance_node.cpp)
 ament_target_dependencies(obstacle_distance_node 
-  rclcpp)
+  rclcpp
+  sensor_msgs
+)
 
 install(
   TARGETS lidar_node lidar_composition lidar_analysis_node obstacle_distance_node

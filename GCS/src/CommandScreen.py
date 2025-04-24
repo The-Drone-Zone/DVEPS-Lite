@@ -357,7 +357,7 @@ class CommandScreen:
             for i in range(len(data.distances)):
                 # distances.append(data.distances[i])
                 angles.append(i * data.increment)
-                data.distances[i] /= 1000
+                data.distances[i] /= 100 # Convert distances from cm to m
 
             # print(f"Angles: {angles}")
             # print(f"Distances {data.distances}")
