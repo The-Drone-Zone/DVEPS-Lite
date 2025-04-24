@@ -22,11 +22,6 @@ public:
             RCLCPP_ERROR(this->get_logger(), "Failed to open serial port");
             return;
         }
-
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(500),
-            std::bind(&ObstacleDistancePublisher::send_obstacle_distance, this)
-        );
     }
 
     ~ObstacleDistancePublisher() {
@@ -36,7 +31,6 @@ public:
 
 private:
     int serial_port_;
-    rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
 
     int open_serial(const std::string& port) {
