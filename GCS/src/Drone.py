@@ -1,10 +1,10 @@
+import os
 from mavsdk import System
 from mavsdk.mission import MissionItem, MissionPlan
 from pymavlink import mavutil
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
 import asyncio
-import os
 import threading
 
 
@@ -95,7 +95,10 @@ class Drone:
         self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
 
     def mavlink_setup(self):
-        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552")
+        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552", 
+            baud=57600,
+            dialect='common',
+            force_mavlink2=True)
         self.mavlink_connection.wait_heartbeat()
         print("Connected to MAVLink!")
         # Start loop to receive LiDAR data
@@ -198,16 +201,15 @@ class Drone:
 
     def get_lidar_samples(self):
         while True:
-            print('Checking for mavlink message')
+            # print('Checking for mavlink message')
             msg = self.mavlink_connection.recv_match(blocking=True)
-            print(f"Received mavlink message of type: {msg.get_type()}")
-            # msg = self.mavlink_connection.recv_match(type='OBSTACLE_DISTANCE', blocking=True)
-            # print('Passed mavlink message')
-            # if msg:
-            #     print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
-            #     self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg.distances}")
-            #     if self.command_tab:
-            #         self.command_tab.update_lidar_plot(msg)
+            # print(f"Received mavlink message of type: {msg.get_type()}")
+            if msg and msg.get_type() == 'OBSTACLE_DISTANCE':
+                # print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
+                # print(f"Received OBSTACLE_DISTANCE: {msg.to_dict()}")
+                self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg.distances}")
+                if self.command_tab:
+                    self.command_tab.update_lidar_plot(msg)
 
     ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):

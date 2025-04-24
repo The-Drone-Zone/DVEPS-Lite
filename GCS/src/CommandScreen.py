@@ -348,21 +348,27 @@ class CommandScreen:
     def update_lidar_plot(self, data=None):
         def update():
             # Simulate incoming LiDAR data (Replace this with real data)
-            angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
-            distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+            # angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
+            # distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
 
             ## For actual display
-            # # # distances = []
-            # angles = []
-            # for i in range(len(data.distances)):
-            #     # distances.append(data.distances[i])
-            #     angles.append(i * data.increment)
+            # # distances = []
+            angles = []
+            for i in range(len(data.distances)):
+                # distances.append(data.distances[i])
+                angles.append(i * data.increment)
+                data.distances[i] /= 1000
+
+            # print(f"Angles: {angles}")
+            # print(f"Distances {data.distances}")
             
             # Convert polar to cartesian coordinates
-            y = distances * np.cos(np.radians(angles)) # For simulated display
-            x = distances * np.sin(np.radians(angles)) # For simulated display
-            # y = data.distances * np.cos(np.radians(angles)) # For actual display
-            # x = data.distances * np.sin(np.radians(angles)) # For actual display
+            # y = distances * np.cos(np.radians(angles)) # For simulated display
+            # x = distances * np.sin(np.radians(angles)) # For simulated display
+            y = data.distances * np.cos(np.radians(angles)) # For actual display
+            x = data.distances * np.sin(np.radians(angles)) # For actual display
+            # print(f"X: {x}")
+            # print(f"Y: {y}")
             
             # Clear previous plot and plot new data
             self.lidar_ax.clear()
@@ -370,12 +376,12 @@ class CommandScreen:
             self.lidar_ax.scatter(x, y, color='blue', s=25)  # Draw lidar points
 
             # Set axis limits
-            self.lidar_ax.set_xlim(-15, 15)
-            self.lidar_ax.set_ylim(0, 30)
+            self.lidar_ax.set_xlim(-35, 35)
+            self.lidar_ax.set_ylim(0, 50)
 
             # Set axis labels
             self.lidar_ax.set_xlabel("Horizontal Distance (m)")
-            self.lidar_ax.set_ylabel("Vertical Distance (mm)")
+            self.lidar_ax.set_ylabel("Vertical Distance (m)")
 
             # Set title
             self.lidar_ax.set_title("LiDAR Scan Visualization")
@@ -391,7 +397,7 @@ class CommandScreen:
             self.lidar_canvas.draw()
 
             # Schedule the next update (e.g., 100 ms)
-            self.lidar_frame.after(10, self.update_lidar_plot)
+            # self.lidar_frame.after(10, self.update_lidar_plot)
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)
