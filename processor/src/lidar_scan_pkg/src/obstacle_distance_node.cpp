@@ -55,32 +55,44 @@ private:
         mavlink_message_t msg;
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
 
-        mavlink_obstacle_distance_t dist{};
+        mavlink_obstacle_distance_t dist;
         dist.time_usec = this->now().nanoseconds() / 1000;
         dist.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        dist.increment = 10;
-        dist.min_distance = 300;
-        dist.max_distance = 1000;
+        dist.increment = 5;
+        dist.min_distance = 100;
+        dist.max_distance = 50000;
         dist.increment_f = NAN;
         dist.angle_offset = 0.0f;
         dist.frame = MAV_FRAME_BODY_FRD;
-        dist.distance[0] = 450;
-        dist.distance[1] = 460;
-        dist.distance[2] = 470;
-        dist.distance[3] = 0xFFFF;  // No data
-        dist.distance[4] = 0xFFFF;  // No data
-        dist.distance[5] = 480;
-        dist.distance[6] = 490;
-        dist.distance[7] = 500;
-        dist.distance[8] = 510;
-        dist.distance[9] = 520;
+        for (int i = 0; i < 72; ++i) {
+            dist.distances[i] = 40000;
+        }
+        dist.distances[0] = 20000;
+        dist.distances[1] = 18000;
+        dist.distances[2] = 15000;
+        dist.distances[3] = 15000;  
+        dist.distances[4] = 15000; 
+        dist.distances[5] = 16000;
+        dist.distances[6] = 17000;
+        dist.distances[7] = 19000;
+        dist.distances[8] = 20000;
+        dist.distances[9] = 25000;
 
-        dist.angle_offset = 0.0f;
-        dist.increment = 20;
-
-        mavlink_msg_obstacle_distance_encode(1, 200, &msg, &dist);
+        mavlink_msg_obstacle_distance_pack(
+            1, 200, &msg,
+            dist.time_usec,
+            dist.sensor_type,
+            dist.distances,
+            dist.increment,
+            dist.min_distance,
+            dist.max_distance,
+            dist.increment_f,
+            dist.angle_offset,
+            dist.frame
+        );
 
         int len = mavlink_msg_to_send_buffer(buffer, &msg);
+        tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
 
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE");
