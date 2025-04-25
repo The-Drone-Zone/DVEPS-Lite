@@ -178,7 +178,7 @@ private:
             diagonal1.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        int written = write(serial_port_, buffer, len);
+        written = write(serial_port_, buffer, len);
         if (written < len) {
             RCLCPP_WARN(this->get_logger(), "Partial write: %d of %d bytes", written, len);
         }
@@ -197,7 +197,7 @@ private:
             diagonal2.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        int written = write(serial_port_, buffer, len);
+        written = write(serial_port_, buffer, len);
         if (written < len) {
             RCLCPP_WARN(this->get_logger(), "Partial write: %d of %d bytes", written, len);
         }
