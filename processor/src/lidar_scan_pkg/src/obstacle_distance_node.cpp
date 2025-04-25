@@ -71,7 +71,7 @@ private:
 
     void send_obstacle_distance(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
         // Only send every 3 scans
-        if (scan_counter_++ % 10 != 0) {
+        if (scan_counter_++ % 3 != 0) {
             return;
         }
 
