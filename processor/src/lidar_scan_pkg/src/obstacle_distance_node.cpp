@@ -114,7 +114,7 @@ private:
             if (degree < 0) {
                 degree += 360;
             }
-            RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+            // RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
             if (degree >= 0 && degree <= 3) {
                 horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++h;
