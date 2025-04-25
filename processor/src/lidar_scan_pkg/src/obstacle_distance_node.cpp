@@ -98,15 +98,15 @@ private:
             float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
             RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
             if (degree >= 0 && degree <= 3) {
-                horizontal.distances[h] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++h;
             }
             else if (degree >= 119 && degree <= 125.5) {
-                diagonal1.distances[d1] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                diagonal1.distances[d1] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d1;
             }
             else if (degree >= 228 && degree <= 234.5) {
-                diagonal2.distances[d2] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                diagonal2.distances[d2] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d2;
             }
         }
@@ -155,7 +155,7 @@ private:
             diagonal1.angle_offset,
             diagonal1.frame
         );
-        int len = mavlink_msg_to_send_buffer(buffer, &msg);
+        len = mavlink_msg_to_send_buffer(buffer, &msg);
         tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
@@ -172,7 +172,7 @@ private:
             diagonal2.angle_offset,
             diagonal2.frame
         );
-        int len = mavlink_msg_to_send_buffer(buffer, &msg);
+        len = mavlink_msg_to_send_buffer(buffer, &msg);
         tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
