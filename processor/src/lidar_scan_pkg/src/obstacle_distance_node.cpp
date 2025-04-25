@@ -99,8 +99,6 @@ private:
         diagonal2.angle_offset = 228.0f;
         diagonal2.frame = MAV_FRAME_BODY_FRD;
 
-        RCLCPP_INFO(this->get_logger(), "increment : %f", (360.0 / count) * 1000);
-
         // Set distances to "no value read" by default
         std::fill_n(horizontal.distances, 72, 0xFFFF);
         std::fill_n(diagonal1.distances, 72, 0xFFFF);
@@ -129,21 +127,6 @@ private:
             }
         }
 
-
-
-        // for (int i = 0; i < 72; ++i) {
-        //     horizontal.distances[i] = 40000;
-        // }
-
-        // int incr = count / 72;
-        // for (int i = 0; i < count; i+= incr) {
-        //     if (i <= count) {
-        //         float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-        //         RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-        //         horizontal.distances[i / incr] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
-        //     }
-        // }
-
         // Send Horizontal Line
         mavlink_msg_obstacle_distance_pack(
             2, 191, &msg,
@@ -162,7 +145,7 @@ private:
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
-                RCLCPP_ERROR(this->get_logger(), "Write error: %s", strerror(errno));
+                RCLCPP_ERROR(this->get_logger(), "Horz Write error: %s", strerror(errno));
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     usleep(1000); // wait 1ms
                     continue;
@@ -193,6 +176,7 @@ private:
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
+                RCLCPP_ERROR(this->get_logger(), "Diag1 Write error: %s", strerror(errno));
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     usleep(1000); // wait 1ms
                     continue;
@@ -222,6 +206,7 @@ private:
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
+                RCLCPP_ERROR(this->get_logger(), "Diag2 Write error: %s", strerror(errno));
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     usleep(1000); // wait 1ms
                     continue;
