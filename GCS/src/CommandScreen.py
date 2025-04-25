@@ -86,8 +86,8 @@ class CommandScreen:
         self.lidar_canvas2 = FigureCanvasTkAgg(self.lidar_fig2, master=self.lidar_plot2_frame)
         self.lidar_canvas2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        self.counter = 0 # For LiDAR Simulating ONLY
-        self.update_lidar_plot() # For LiDAR Simulating ONLY
+        # self.lidar_counter = 0 # For LiDAR Simulating ONLY
+        # self.update_lidar_plot() # For LiDAR Simulating ONLY
 
         ###############################################################################
         ###############################################################################
@@ -373,54 +373,61 @@ class CommandScreen:
     def update_lidar_plot(self, data=None):
         def update():
             # For actual display
-            # angles = []
-            # distances = []
-            # DEG_OFFSET = 3
-            # for i in range(len(data.distances)):
-            #     angles.append((i * data.increment) - DEG_OFFSET)
-            #     distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
+            angles = []
+            angles2 = []
+            distances = []
+            for i in range(len(data.distances)):
+                angles.append((i * data.increment))
+                angles2.append((i * data.increment) + data.angle_offset)
+                distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
             # print(f"Angles: {angles}")
             # print(f"Distances {distances}")
 
             ## Convert polar to cartesian coordinates (For actual display)
             # Horizontal line
-            # if data.angle_offset == 0:
-            #     self.horizontal[0] = distances * np.sin(np.radians(angles))
-            #     self.horizontal[1] = distances * np.cos(np.radians(angles))
-            # # Bottom left to top right diagonal (diagonal1)
-            # elif data.angle_offset == 1:
-            #     self.diagonal1[0] = distances * np.sin(np.radians(angles))
-            #     self.diagonal1[1] = distances * np.cos(np.radians(angles))
-            # # Top left to bottom right diagonal (diagonal2)
-            # elif data.angle_offset == 2:
-            #     self.diagonal2[0] = distances * np.sin(np.radians(angles))
-            #     self.diagonal2[1] = distances * np.cos(np.radians(angles))
-
-            # Simulate incoming LiDAR data (Replace this with real data)
-            angles = np.linspace(-4, 4, 50) 
-            angles2 = np.linspace(0, 360, 50)
-            distances = np.random.uniform(20, 30, size=50)  # Random distances for simulation
-
-            ## Convert polar to cartesian coordinates (FOR SIMULATION ONLY)
-            # Horizontal line
-            if self.counter % 3 == 0:
+            if data.angle_offset == -3:
                 self.horizontal[0] = distances * np.sin(np.radians(angles))
                 self.horizontal[1] = distances * np.cos(np.radians(angles))
                 self.horizontal[2] = distances * np.sin(np.radians(angles2))
                 self.horizontal[3] = distances * np.cos(np.radians(angles2))
             # Bottom left to top right diagonal (diagonal1)
-            elif self.counter % 3 == 1:
+            elif data.angle_offset == 119:
                 self.diagonal1[0] = distances * np.sin(np.radians(angles))
                 self.diagonal1[1] = distances * np.cos(np.radians(angles))
                 self.diagonal1[2] = distances * np.sin(np.radians(angles2))
                 self.diagonal1[3] = distances * np.cos(np.radians(angles2))
             # Top left to bottom right diagonal (diagonal2)
-            elif self.counter % 3 == 2:
+            elif data.angle_offset == 228:
                 self.diagonal2[0] = distances * np.sin(np.radians(angles))
                 self.diagonal2[1] = distances * np.cos(np.radians(angles))
                 self.diagonal2[2] = distances * np.sin(np.radians(angles2))
                 self.diagonal2[3] = distances * np.cos(np.radians(angles2))
+
+            # Simulate incoming LiDAR data (Replace this with real data)
+            # angles = np.linspace(-4, 4, 50) 
+            # angles2 = np.linspace(0, 360, 50)
+            # distances = np.random.uniform(20, 30, size=50)  # Random distances for simulation
+
+            # ## Convert polar to cartesian coordinates (FOR SIMULATION ONLY)
+            # # Horizontal line
+            # if self.lidar_counter % 3 == 0:
+            #     self.horizontal[0] = distances * np.sin(np.radians(angles))
+            #     self.horizontal[1] = distances * np.cos(np.radians(angles))
+            #     self.horizontal[2] = distances * np.sin(np.radians(angles2))
+            #     self.horizontal[3] = distances * np.cos(np.radians(angles2))
+            # # Bottom left to top right diagonal (diagonal1)
+            # elif self.lidar_counter % 3 == 1:
+            #     self.diagonal1[0] = distances * np.sin(np.radians(angles))
+            #     self.diagonal1[1] = distances * np.cos(np.radians(angles))
+            #     self.diagonal1[2] = distances * np.sin(np.radians(angles2))
+            #     self.diagonal1[3] = distances * np.cos(np.radians(angles2))
+            # # Top left to bottom right diagonal (diagonal2)
+            # elif self.lidar_counter % 3 == 2:
+            #     self.diagonal2[0] = distances * np.sin(np.radians(angles))
+            #     self.diagonal2[1] = distances * np.cos(np.radians(angles))
+            #     self.diagonal2[2] = distances * np.sin(np.radians(angles2))
+            #     self.diagonal2[3] = distances * np.cos(np.radians(angles2))
             
             ## Clear previous plot and plot new data
             # Plot 1
@@ -469,8 +476,8 @@ class CommandScreen:
             self.lidar_canvas2.draw()
 
             # Schedule the next update (e.g., 100 ms)
-            self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
-            self.counter += 1 # FOR SIMULATION ONLY
+            # self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
+            # self.lidar_counter += 1 # FOR SIMULATION ONLY
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)

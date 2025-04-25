@@ -60,46 +60,122 @@ private:
         mavlink_message_t msg;
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
 
-        mavlink_obstacle_distance_t dist;
-        dist.time_usec = this->now().nanoseconds() / 1000;
-        dist.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        dist.increment = count / 72;
-        dist.min_distance = 100;
-        dist.max_distance = 50000;
-        dist.increment_f = NAN;
-        dist.angle_offset = 0.0f;
-        dist.frame = MAV_FRAME_BODY_FRD;
-        for (int i = 0; i < 72; ++i) {
-            dist.distances[i] = 40000;
-        }
-
-        int incr = count / 72;
-        for (int i = 0; i < count; i+= incr) {
-            if (i <= count) {
-                float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-                RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-                dist.distances[i / incr] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
+        // Horizontal LiDAR Line
+        mavlink_obstacle_distance_t horizontal;
+        horizontal.time_usec = this->now().nanoseconds() / 1000;
+        horizontal.sensor_type = MAV_DISTANCE_SENSOR_LASER;
+        horizontal.increment = count / 360;
+        horizontal.min_distance = 100;
+        horizontal.max_distance = 50000;
+        horizontal.increment_f = NAN;
+        horizontal.angle_offset = -3.0f;
+        horizontal.frame = MAV_FRAME_BODY_FRD;
+        // Bottom left to top right diagonal line (diagonal1)
+        mavlink_obstacle_distance_t diagonal1;
+        diagonal1.time_usec = this->now().nanoseconds() / 1000;
+        diagonal1.sensor_type = MAV_DISTANCE_SENSOR_LASER;
+        diagonal1.increment = count / 360;
+        diagonal1.min_distance = 100;
+        diagonal1.max_distance = 50000;
+        diagonal1.increment_f = NAN;
+        diagonal1.angle_offset = 119.0f;
+        diagonal1.frame = MAV_FRAME_BODY_FRD;
+        // Top left to bottom right diagonal line (diagonal2)
+        mavlink_obstacle_distance_t diagonal2;
+        diagonal2.time_usec = this->now().nanoseconds() / 1000;
+        diagonal2.sensor_type = MAV_DISTANCE_SENSOR_LASER;
+        diagonal2.increment = count / 360;
+        diagonal2.min_distance = 100;
+        diagonal2.max_distance = 50000;
+        diagonal2.increment_f = NAN;
+        diagonal2.angle_offset = 228.0f;
+        diagonal2.frame = MAV_FRAME_BODY_FRD;
+        
+        int h = 0;
+        int d1 = 0;
+        int d2 = 0;
+        for (int i = 0; i < count; ++i) {
+            float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+            RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+            if (degree >= 0 && degree <= 3) {
+                horizontal.distances[h] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                ++h;
+            }
+            else if (degree >= 119 && degree <= 125.5) {
+                diagonal1.distances[d1] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                ++d1;
+            }
+            else if (degree >= 228 && degree <= 234.5) {
+                diagonal2.distances[d2] = scan->ranges[i] * 100 // need to convert distance to cm (starts in mm)
+                ++d2;
             }
         }
 
+        // for (int i = 0; i < 72; ++i) {
+        //     horizontal.distances[i] = 40000;
+        // }
+
+        // int incr = count / 72;
+        // for (int i = 0; i < count; i+= incr) {
+        //     if (i <= count) {
+        //         float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+        //         RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+        //         horizontal.distances[i / incr] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
+        //     }
+        // }
+
+        // Send Horizontal Line
         mavlink_msg_obstacle_distance_pack(
             1, 200, &msg,
-            dist.time_usec,
-            dist.sensor_type,
-            dist.distances,
-            dist.increment,
-            dist.min_distance,
-            dist.max_distance,
-            dist.increment_f,
-            dist.angle_offset,
-            dist.frame
+            horizontal.time_usec,
+            horizontal.sensor_type,
+            horizontal.distances,
+            horizontal.increment,
+            horizontal.min_distance,
+            horizontal.max_distance,
+            horizontal.increment_f,
+            horizontal.angle_offset,
+            horizontal.frame
         );
-
         int len = mavlink_msg_to_send_buffer(buffer, &msg);
         tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
+        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Horizontal");
 
-        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE");
+        // Send Diagonal1 Line
+        mavlink_msg_obstacle_distance_pack(
+            1, 200, &msg,
+            diagonal1.time_usec,
+            diagonal1.sensor_type,
+            diagonal1.distances,
+            diagonal1.increment,
+            diagonal1.min_distance,
+            diagonal1.max_distance,
+            diagonal1.increment_f,
+            diagonal1.angle_offset,
+            diagonal1.frame
+        );
+        int len = mavlink_msg_to_send_buffer(buffer, &msg);
+        tcflush(serial_port_, TCIOFLUSH);
+        write(serial_port_, buffer, len);
+        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
+        // Send Diagonal2 Line
+        mavlink_msg_obstacle_distance_pack(
+            1, 200, &msg,
+            diagonal2.time_usec,
+            diagonal2.sensor_type,
+            diagonal2.distances,
+            diagonal2.increment,
+            diagonal2.min_distance,
+            diagonal2.max_distance,
+            diagonal2.increment_f,
+            diagonal2.angle_offset,
+            diagonal2.frame
+        );
+        int len = mavlink_msg_to_send_buffer(buffer, &msg);
+        tcflush(serial_port_, TCIOFLUSH);
+        write(serial_port_, buffer, len);
+        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
     }
 };
 
