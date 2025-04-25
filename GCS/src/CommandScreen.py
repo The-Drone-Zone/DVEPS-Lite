@@ -384,8 +384,9 @@ class CommandScreen:
                 angles2.append((i * data.increment) + data.angle_offset)
                 distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
-            print(f"Angles: {angles2}")
-            print(f"Distances {distances}")
+            print(data.angle_offset)
+            # print(f"Angles: {angles2}")
+            # print(f"Distances {distances}")
 
             ## Convert polar to cartesian coordinates (For actual display)
             # Horizontal line
