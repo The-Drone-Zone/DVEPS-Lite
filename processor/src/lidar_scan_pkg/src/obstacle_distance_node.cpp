@@ -36,22 +36,38 @@ private:
     size_t scan_counter_;
 
     int open_serial(const std::string& port) {
+        // Open the serial port:
         int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
-        fcntl(serial_port_, F_SETFL, O_RDWR | O_NOCTTY | O_NONBLOCK);
         if (fd == -1) return -1;
-
+        fcntl(fd, F_SETFL, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    
+        // Get current terminal attributes
         struct termios options{};
         tcgetattr(fd, &options);
+    
+        // Set baud rate for input and output
         cfsetispeed(&options, B57600);
         cfsetospeed(&options, B57600);
+    
+        // Enable receiver, set local mode
         options.c_cflag |= (CLOCAL | CREAD);
+    
+        // Set 8 data bits
         options.c_cflag &= ~CSIZE;
         options.c_cflag |= CS8;
+    
+        // No parity
         options.c_cflag &= ~PARENB;
+    
+        // One stop bit
         options.c_cflag &= ~CSTOPB;
+    
+        // Disable hardware flow control (RTS/CTS)
         options.c_cflag &= ~CRTSCTS;
+    
+        // Apply the configuration immediately
         tcsetattr(fd, TCSANOW, &options);
-
+    
         return fd;
     }
 
