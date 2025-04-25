@@ -36,38 +36,36 @@ private:
     size_t scan_counter_;
 
     int open_serial(const std::string& port) {
-        // Open the serial port:
+        // Open the serial port in non-blocking mode
         int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
         if (fd == -1) return -1;
-        fcntl(fd, F_SETFL, O_RDWR | O_NOCTTY | O_NONBLOCK);
     
-        // Get current terminal attributes
+        // Add non-blocking flag without overwriting others
+        fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    
         struct termios options{};
         tcgetattr(fd, &options);
     
-        // Set baud rate for input and output
+        // Set baud rate (must match the SiK radio setting)
         cfsetispeed(&options, B57600);
         cfsetospeed(&options, B57600);
     
-        // Enable receiver, set local mode
-        options.c_cflag |= (CLOCAL | CREAD);
-    
-        // Set 8 data bits
+        // Raw input mode
+        options.c_cflag |= (CLOCAL | CREAD);  // Enable receiver, set local mode
         options.c_cflag &= ~CSIZE;
-        options.c_cflag |= CS8;
+        options.c_cflag |= CS8;               // 8 data bits
+        options.c_cflag &= ~PARENB;           // No parity
+        options.c_cflag &= ~CSTOPB;           // 1 stop bit
     
-        // No parity
-        options.c_cflag &= ~PARENB;
+        // Flow control — try enabling if radios are wired for RTS/CTS
+        options.c_cflag |= CRTSCTS;        // Enable hardware flow control
+        // options.c_cflag &= ~CRTSCTS;          // Disable hardware flow control
     
-        // One stop bit
-        options.c_cflag &= ~CSTOPB;
+        options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // Raw input
+        options.c_iflag &= ~(IXON | IXOFF | IXANY);          // No software flow control
+        options.c_oflag &= ~OPOST;                           // Raw output
     
-        // Disable hardware flow control (RTS/CTS)
-        options.c_cflag &= ~CRTSCTS;
-    
-        // Apply the configuration immediately
         tcsetattr(fd, TCSANOW, &options);
-    
         return fd;
     }
 
