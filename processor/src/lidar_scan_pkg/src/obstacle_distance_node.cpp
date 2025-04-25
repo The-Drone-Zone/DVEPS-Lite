@@ -90,6 +90,8 @@ private:
         diagonal2.increment_f = NAN;
         diagonal2.angle_offset = 228.0f;
         diagonal2.frame = MAV_FRAME_BODY_FRD;
+
+        RCLCPP_INFO(this->get_logger(), "increment : %f", 360.0 / count);
         
         int h = 0;
         int d1 = 0;
