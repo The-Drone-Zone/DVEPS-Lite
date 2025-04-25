@@ -162,6 +162,7 @@ private:
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
+                RCLCPP_ERROR(this->get_logger(), "Write error: %s", strerror(errno));
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     usleep(1000); // wait 1ms
                     continue;
