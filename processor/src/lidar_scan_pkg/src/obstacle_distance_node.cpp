@@ -64,7 +64,7 @@ private:
         mavlink_obstacle_distance_t horizontal;
         horizontal.time_usec = this->now().nanoseconds() / 1000;
         horizontal.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        horizontal.increment = (360.0 / count) * 1000;
+        horizontal.increment = (360.0 / count) * 1000; // Must be passed as int (even tho docs say float)
         horizontal.min_distance = 100;
         horizontal.max_distance = 50000;
         horizontal.increment_f = NAN;
@@ -74,7 +74,7 @@ private:
         mavlink_obstacle_distance_t diagonal1;
         diagonal1.time_usec = this->now().nanoseconds() / 1000;
         diagonal1.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal1.increment = (360.0 / count) * 1000;
+        diagonal1.increment = (360.0 / count) * 1000; // Must be passed as int (even tho docs say float)
         diagonal1.min_distance = 100;
         diagonal1.max_distance = 50000;
         diagonal1.increment_f = NAN;
@@ -84,7 +84,7 @@ private:
         mavlink_obstacle_distance_t diagonal2;
         diagonal2.time_usec = this->now().nanoseconds() / 1000;
         diagonal2.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal2.increment = (360.0 / count) * 1000;
+        diagonal2.increment = (360.0 / count) * 1000; // Must be passed as int (even tho docs say float)
         diagonal2.min_distance = 100;
         diagonal2.max_distance = 50000;
         diagonal2.increment_f = NAN;
