@@ -145,12 +145,12 @@ private:
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
-                RCLCPP_ERROR(this->get_logger(), "Horz Write error: %s", strerror(errno));
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    usleep(1000); // wait 1ms
+                    RCLCPP_WARN(this->get_logger(), "Horz: Write EAGAIN, retrying...");
+                    usleep(1000);  // wait 1 ms
                     continue;
                 } else {
-                    RCLCPP_ERROR(this->get_logger(), "Write failed: %s", strerror(errno));
+                    RCLCPP_ERROR(this->get_logger(), "Horz: Write failed: %s", strerror(errno));
                     break;
                 }
             }
@@ -171,53 +171,53 @@ private:
             diagonal1.angle_offset,
             diagonal1.frame
         );
-        len = mavlink_msg_to_send_buffer(buffer, &msg);
-        total_written = 0;
-        while (total_written < len) {
-            int n = write(serial_port_, buffer + total_written, len - total_written);
-            if (n == -1) {
-                RCLCPP_ERROR(this->get_logger(), "Diag1 Write error: %s", strerror(errno));
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    usleep(1000); // wait 1ms
-                    continue;
-                } else {
-                    RCLCPP_ERROR(this->get_logger(), "Write failed: %s", strerror(errno));
-                    break;
-                }
-            }
-            total_written += n;
-        }
-        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
-        // Send Diagonal2 Line
-        mavlink_msg_obstacle_distance_pack(
-            2, 191, &msg,
-            diagonal2.time_usec,
-            diagonal2.sensor_type,
-            diagonal2.distances,
-            diagonal2.increment,
-            diagonal2.min_distance,
-            diagonal2.max_distance,
-            diagonal2.increment_f,
-            diagonal2.angle_offset,
-            diagonal2.frame
-        );
-        len = mavlink_msg_to_send_buffer(buffer, &msg);
-        total_written = 0;
-        while (total_written < len) {
-            int n = write(serial_port_, buffer + total_written, len - total_written);
-            if (n == -1) {
-                RCLCPP_ERROR(this->get_logger(), "Diag2 Write error: %s", strerror(errno));
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    usleep(1000); // wait 1ms
-                    continue;
-                } else {
-                    RCLCPP_ERROR(this->get_logger(), "Write failed: %s", strerror(errno));
-                    break;
-                }
-            }
-            total_written += n;
-        }
-        RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
+        // len = mavlink_msg_to_send_buffer(buffer, &msg);
+        // total_written = 0;
+        // while (total_written < len) {
+        //     int n = write(serial_port_, buffer + total_written, len - total_written);
+        //     if (n == -1) {
+        //         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        //             RCLCPP_WARN(this->get_logger(), "Diag1: Write EAGAIN, retrying...");
+        //             usleep(1000);  // wait 1 ms
+        //             continue;
+        //         } else {
+        //             RCLCPP_ERROR(this->get_logger(), "Diag1: Write failed: %s", strerror(errno));
+        //             break;
+        //         }
+        //     }
+        //     total_written += n;
+        // }
+        // RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
+        // // Send Diagonal2 Line
+        // mavlink_msg_obstacle_distance_pack(
+        //     2, 191, &msg,
+        //     diagonal2.time_usec,
+        //     diagonal2.sensor_type,
+        //     diagonal2.distances,
+        //     diagonal2.increment,
+        //     diagonal2.min_distance,
+        //     diagonal2.max_distance,
+        //     diagonal2.increment_f,
+        //     diagonal2.angle_offset,
+        //     diagonal2.frame
+        // );
+        // len = mavlink_msg_to_send_buffer(buffer, &msg);
+        // total_written = 0;
+        // while (total_written < len) {
+        //     int n = write(serial_port_, buffer + total_written, len - total_written);
+        //     if (n == -1) {
+        //         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        //             RCLCPP_WARN(this->get_logger(), "Diag2: Write EAGAIN, retrying...");
+        //             usleep(1000);  // wait 1 ms
+        //             continue;
+        //         } else {
+        //             RCLCPP_ERROR(this->get_logger(), "Diag2: Write failed: %s", strerror(errno));
+        //             break;
+        //         }
+        //     }
+        //     total_written += n;
+        // }
+        // RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
     }
 };
 
