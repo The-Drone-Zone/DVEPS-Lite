@@ -103,6 +103,9 @@ private:
         int d2 = 0;
         for (int i = 0; i < count; ++i) {
             float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+            if (degree < 0) {
+                degree += 360;
+            }
             RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
             if (degree >= 0 && degree <= 3) {
                 horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
