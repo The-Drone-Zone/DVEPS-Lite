@@ -64,7 +64,7 @@ private:
         mavlink_obstacle_distance_t horizontal;
         horizontal.time_usec = this->now().nanoseconds() / 1000;
         horizontal.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        horizontal.increment = count / 360;
+        horizontal.increment = 360.0 / count;
         horizontal.min_distance = 100;
         horizontal.max_distance = 50000;
         horizontal.increment_f = NAN;
@@ -74,7 +74,7 @@ private:
         mavlink_obstacle_distance_t diagonal1;
         diagonal1.time_usec = this->now().nanoseconds() / 1000;
         diagonal1.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal1.increment = count / 360;
+        diagonal1.increment = 360.0 / count;
         diagonal1.min_distance = 100;
         diagonal1.max_distance = 50000;
         diagonal1.increment_f = NAN;
@@ -84,19 +84,20 @@ private:
         mavlink_obstacle_distance_t diagonal2;
         diagonal2.time_usec = this->now().nanoseconds() / 1000;
         diagonal2.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal2.increment = count / 360;
+        diagonal2.increment = 360.0 / count;
         diagonal2.min_distance = 100;
         diagonal2.max_distance = 50000;
         diagonal2.increment_f = NAN;
         diagonal2.angle_offset = 228.0f;
         diagonal2.frame = MAV_FRAME_BODY_FRD;
+        RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
         
         int h = 0;
         int d1 = 0;
         int d2 = 0;
         for (int i = 0; i < count; ++i) {
             float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-            RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+            // RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
             if (degree >= 0 && degree <= 3) {
                 horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++h;

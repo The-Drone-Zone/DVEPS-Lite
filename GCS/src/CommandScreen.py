@@ -85,6 +85,8 @@ class CommandScreen:
         self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         self.lidar_canvas2 = FigureCanvasTkAgg(self.lidar_fig2, master=self.lidar_plot2_frame)
         self.lidar_canvas2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        # Stores if a plot is currently being drawn
+        self.drawing_lidar_plot = False
 
         # self.lidar_counter = 0 # For LiDAR Simulating ONLY
         # self.update_lidar_plot() # For LiDAR Simulating ONLY
@@ -381,7 +383,7 @@ class CommandScreen:
                 angles2.append((i * data.increment) + data.angle_offset)
                 distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
-            # print(f"Angles: {angles}")
+            print(f"Angles: {angles2}")
             # print(f"Distances {distances}")
 
             ## Convert polar to cartesian coordinates (For actual display)
@@ -428,56 +430,62 @@ class CommandScreen:
             #     self.diagonal2[1] = distances * np.cos(np.radians(angles))
             #     self.diagonal2[2] = distances * np.sin(np.radians(angles2))
             #     self.diagonal2[3] = distances * np.cos(np.radians(angles2))
-            
-            ## Clear previous plot and plot new data
-            # Plot 1
-            self.lidar_ax.clear()
-            self.lidar_ax.scatter([0], [0.5], color='orange', s=500) # Represents drone position
-            self.lidar_ax.scatter(self.horizontal[0], self.horizontal[1], color='blue', s=25)  # Draw horizontal lidar points
-            self.lidar_ax.scatter(self.diagonal1[0], self.diagonal1[1], color='red', s=25)  # Draw diagonal1 lidar points
-            self.lidar_ax.scatter(self.diagonal2[0], self.diagonal2[1], color='green', s=25)  # Draw diagonal2 lidar points
-            # Plot 2
-            self.lidar_ax2.clear()
-            self.lidar_ax2.scatter([0], [0], color='orange', s=500) # Represents drone position
-            self.lidar_ax2.scatter(self.horizontal[2], self.horizontal[3], color='blue', s=25)  # Draw horizontal lidar points
-            self.lidar_ax2.scatter(self.diagonal1[2], self.diagonal1[3], color='red', s=25)  # Draw diagonal1 lidar points
-            self.lidar_ax2.scatter(self.diagonal2[2], self.diagonal2[3], color='green', s=25)  # Draw diagonal2 lidar points
 
-            ## Set axis limits
-            # Plot 1
-            self.lidar_ax.set_xlim(-3, 3)
-            self.lidar_ax.set_ylim(0, 40)
-            # Plot 2
-            self.lidar_ax2.set_xlim(-40, 40)
-            self.lidar_ax2.set_ylim(-40, 40)
+            # Check if another thread is currently drawing and if this is the end of the scan (3rd message/diagonal2)
+            if not self.drawing_lidar_plot and data.angle_offset == 228:
+                self.drawing_lidar_plot = True
+                ## Clear previous plot and plot new data
+                # Plot 1
+                self.lidar_ax.clear()
+                self.lidar_ax.scatter([0], [0], color='orange', s=500) # Represents drone position
+                self.lidar_ax.scatter(self.horizontal[0], self.horizontal[1], color='blue', s=25)  # Draw horizontal lidar points
+                self.lidar_ax.scatter(self.diagonal1[0], self.diagonal1[1], color='red', s=25)  # Draw diagonal1 lidar points
+                self.lidar_ax.scatter(self.diagonal2[0], self.diagonal2[1], color='green', s=25)  # Draw diagonal2 lidar points
+                # Plot 2
+                self.lidar_ax2.clear()
+                self.lidar_ax2.scatter([0], [0], color='orange', s=500) # Represents drone position
+                self.lidar_ax2.scatter(self.horizontal[2], self.horizontal[3], color='blue', s=25)  # Draw horizontal lidar points
+                self.lidar_ax2.scatter(self.diagonal1[2], self.diagonal1[3], color='red', s=25)  # Draw diagonal1 lidar points
+                self.lidar_ax2.scatter(self.diagonal2[2], self.diagonal2[3], color='green', s=25)  # Draw diagonal2 lidar points
 
-            ## Set axis labels
-            # Plot 1
-            self.lidar_ax.set_xlabel("Horizontal Distance (m)")
-            self.lidar_ax.set_ylabel("Vertical Distance (m)")
-            # Plot 2
-            self.lidar_ax2.set_xlabel("Horizontal Distance (m)")
-            self.lidar_ax2.set_ylabel("Vertical Distance (m)")
+                ## Set axis limits
+                # Plot 1
+                self.lidar_ax.set_xlim(-1, 1)
+                self.lidar_ax.set_ylim(0, 1)
+                # Plot 2
+                self.lidar_ax2.set_xlim(-1, 1)
+                self.lidar_ax2.set_ylim(-1, 1)
 
-            # Set titles
-            self.lidar_ax.set_title("LiDAR Scan Visualization")
-            self.lidar_ax2.set_title("360 LiDAR Scan Visualization")
+                ## Set axis labels
+                # Plot 1
+                self.lidar_ax.set_xlabel("Horizontal Distance (m)")
+                self.lidar_ax.set_ylabel("Vertical Distance (m)")
+                # Plot 2
+                self.lidar_ax2.set_xlabel("Horizontal Distance (m)")
+                self.lidar_ax2.set_ylabel("Vertical Distance (m)")
 
-            ## Set axis scale (example: log scale for distance)
-            # Plot 1
-            self.lidar_ax.set_xscale('linear')
-            self.lidar_ax.set_yscale('linear')
-            # Plot 2
-            self.lidar_ax2.set_xscale('linear')
-            self.lidar_ax2.set_yscale('linear')
-            
-            # Redraw the canvas
-            self.lidar_canvas.draw()
-            self.lidar_canvas2.draw()
+                # Set titles
+                self.lidar_ax.set_title("LiDAR Scan Visualization")
+                self.lidar_ax2.set_title("360 LiDAR Scan Visualization")
 
-            # Schedule the next update (e.g., 100 ms)
-            # self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
-            # self.lidar_counter += 1 # FOR SIMULATION ONLY
+                ## Set axis scale (example: log scale for distance)
+                # Plot 1
+                self.lidar_ax.set_xscale('linear')
+                self.lidar_ax.set_yscale('linear')
+                # Plot 2
+                self.lidar_ax2.set_xscale('linear')
+                self.lidar_ax2.set_yscale('linear')
+                
+                # Redraw the canvas
+                self.lidar_canvas.draw()
+                self.lidar_canvas2.draw()
+
+                # Open plot to be redrawn
+                self.drawing_lidar_plot = False
+
+                # Schedule the next update (e.g., 100 ms)
+                # self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
+                # self.lidar_counter += 1 # FOR SIMULATION ONLY
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)
