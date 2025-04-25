@@ -37,6 +37,7 @@ private:
 
     int open_serial(const std::string& port) {
         int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
+        fcntl(serial_port_, F_SETFL, O_RDWR | O_NOCTTY | O_NONBLOCK);
         if (fd == -1) return -1;
 
         struct termios options{};
@@ -145,7 +146,7 @@ private:
 
         // Send Horizontal Line
         mavlink_msg_obstacle_distance_pack(
-            1, 200, &msg,
+            2, 191, &msg,
             horizontal.time_usec,
             horizontal.sensor_type,
             horizontal.distances,
@@ -157,12 +158,15 @@ private:
             horizontal.frame
         );
         int len = mavlink_msg_to_send_buffer(buffer, &msg);
-        write(serial_port_, buffer, len);
+        int written = write(serial_port_, buffer, len);
+        if (written < len) {
+            RCLCPP_WARN(this->get_logger(), "Partial write: %d of %d bytes", written, len);
+        }
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Horizontal");
 
         // Send Diagonal1 Line
         mavlink_msg_obstacle_distance_pack(
-            1, 200, &msg,
+            2, 191, &msg,
             diagonal1.time_usec,
             diagonal1.sensor_type,
             diagonal1.distances,
@@ -174,11 +178,14 @@ private:
             diagonal1.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        write(serial_port_, buffer, len);
+        int written = write(serial_port_, buffer, len);
+        if (written < len) {
+            RCLCPP_WARN(this->get_logger(), "Partial write: %d of %d bytes", written, len);
+        }
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
         // Send Diagonal2 Line
         mavlink_msg_obstacle_distance_pack(
-            1, 200, &msg,
+            2, 191, &msg,
             diagonal2.time_usec,
             diagonal2.sensor_type,
             diagonal2.distances,
@@ -190,7 +197,10 @@ private:
             diagonal2.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        write(serial_port_, buffer, len);
+        int written = write(serial_port_, buffer, len);
+        if (written < len) {
+            RCLCPP_WARN(this->get_logger(), "Partial write: %d of %d bytes", written, len);
+        }
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
     }
 };
