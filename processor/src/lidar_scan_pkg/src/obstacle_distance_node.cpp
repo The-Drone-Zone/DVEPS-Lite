@@ -92,6 +92,11 @@ private:
         diagonal2.frame = MAV_FRAME_BODY_FRD;
 
         RCLCPP_INFO(this->get_logger(), "increment : %f", (360.0 / count) * 1000);
+
+        // Set distances to "no value read" by default
+        std::fill_n(horizontal.distances, 72, 0xFFFF);
+        std::fill_n(diagonal1.distances, 72, 0xFFFF);
+        std::fill_n(diagonal2.distances, 72, 0xFFFF);
         
         int h = 0;
         int d1 = 0;
@@ -140,7 +145,6 @@ private:
             horizontal.frame
         );
         int len = mavlink_msg_to_send_buffer(buffer, &msg);
-        tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Horizontal");
 
@@ -158,7 +162,6 @@ private:
             diagonal1.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal1");
         // Send Diagonal2 Line
@@ -175,7 +178,6 @@ private:
             diagonal2.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        tcflush(serial_port_, TCIOFLUSH);
         write(serial_port_, buffer, len);
         RCLCPP_INFO(this->get_logger(), "Sent OBSTACLE_DISTANCE Diagonal2");
     }

@@ -451,11 +451,11 @@ class CommandScreen:
 
                 ## Set axis limits
                 # Plot 1
-                self.lidar_ax.set_xlim(-1, 1)
-                self.lidar_ax.set_ylim(0, 1)
+                self.lidar_ax.set_xlim(-0.5, 0.5)
+                self.lidar_ax.set_ylim(0, 0.5)
                 # Plot 2
-                self.lidar_ax2.set_xlim(-1, 1)
-                self.lidar_ax2.set_ylim(-1, 1)
+                self.lidar_ax2.set_xlim(-0.5, 0.5)
+                self.lidar_ax2.set_ylim(-0.5, 0.5)
 
                 ## Set axis labels
                 # Plot 1
