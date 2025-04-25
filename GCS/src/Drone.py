@@ -51,20 +51,6 @@ class Drone:
         await self.drone.connect(system_address="udp://127.0.0.1:14551")
         print('Connected to MAVSDK!')
 
-        # if os.name == "nt":  # Windows
-
-        #     self.drone = System(mavsdk_server_address="localhost", port=50051)
-        #     await self.drone.connect(
-        #         system_address="serial://COM3:57600"
-        #     )
-        # elif os.name == "posix":  # Linux/macOS
-
-        #     self.drone = System()
-        #     await self.drone.connect(
-        #         system_address="serial:///dev/ttyUSB0:57600"
-        #     )
-
-
         # Setup Drone Configuration based on Settings
         asyncio.run_coroutine_threadsafe(self.set_takeoff_height_drone(), self.loop)
         asyncio.run_coroutine_threadsafe(self.set_speed_drone(), self.loop)
@@ -203,7 +189,7 @@ class Drone:
         while True:
             # print('Checking for mavlink message')
             msg = self.mavlink_connection.recv_match(blocking=True)
-            # print(f"Received mavlink message of type: {msg.get_type()}")
+            print(f"Received mavlink message of type: {msg.get_type()}")
             if msg and msg.get_type() == 'OBSTACLE_DISTANCE':
                 # print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
                 # print(f"Received OBSTACLE_DISTANCE: {msg.to_dict()}")

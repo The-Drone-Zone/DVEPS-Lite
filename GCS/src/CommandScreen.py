@@ -386,7 +386,7 @@ class CommandScreen:
 
             print(data.angle_offset)
             # print(f"Angles: {angles2}")
-            # print(f"Distances {distances}")
+            print(f"Distances {distances}")
 
             ## Convert polar to cartesian coordinates (For actual display)
             # Horizontal line
