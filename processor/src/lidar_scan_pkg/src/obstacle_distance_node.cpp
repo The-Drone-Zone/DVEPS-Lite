@@ -188,7 +188,7 @@ private:
             diagonal1.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        int total_written = 0;
+        total_written = 0;
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
@@ -217,7 +217,7 @@ private:
             diagonal2.frame
         );
         len = mavlink_msg_to_send_buffer(buffer, &msg);
-        int total_written = 0;
+        total_written = 0;
         while (total_written < len) {
             int n = write(serial_port_, buffer + total_written, len - total_written);
             if (n == -1) {
