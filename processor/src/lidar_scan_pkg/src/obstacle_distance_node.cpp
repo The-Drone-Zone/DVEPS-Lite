@@ -22,6 +22,7 @@ public:
             RCLCPP_ERROR(this->get_logger(), "Failed to open serial port");
             return;
         }
+        scan_counter_ = 0;
     }
 
     ~ObstacleDistancePublisher() {
@@ -32,6 +33,7 @@ public:
 private:
     int serial_port_;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
+    size_t scan_counter_;
 
     int open_serial(const std::string& port) {
         int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
@@ -53,6 +55,11 @@ private:
     }
 
     void send_obstacle_distance(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
+        // Only send every 3 scans
+        if (scan_counter_++ % 3 != 0) {
+            return;
+        }
+
         int count = scan->scan_time / scan->time_increment;
         RCLCPP_INFO(this->get_logger(), "I heard a laser scan %s[%d]", scan->header.frame_id.c_str(), count);
         RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));

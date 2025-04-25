@@ -384,7 +384,7 @@ class CommandScreen:
                 angles2.append((i * data.increment) + data.angle_offset)
                 distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
-            print(data.angle_offset)
+            # print(data.angle_offset)
             # print(f"Angles: {angles2}")
             # print(f"Distances {distances}")
 
@@ -397,6 +397,8 @@ class CommandScreen:
                 self.horizontal[3] = distances * np.cos(np.radians(angles2))
             # Bottom left to top right diagonal (diagonal1)
             elif data.angle_offset == 119:
+                print(f"Angles: {angles2}")
+                print(f"Distances {distances}")
                 self.diagonal1[0] = distances * np.sin(np.radians(angles))
                 self.diagonal1[1] = distances * np.cos(np.radians(angles))
                 self.diagonal1[2] = distances * np.sin(np.radians(angles2))
@@ -452,11 +454,11 @@ class CommandScreen:
 
                 ## Set axis limits
                 # Plot 1
-                self.lidar_ax.set_xlim(-0.5, 0.5)
-                self.lidar_ax.set_ylim(0, 0.5)
+                self.lidar_ax.set_xlim(-2, 2)
+                self.lidar_ax.set_ylim(0, 2)
                 # Plot 2
-                self.lidar_ax2.set_xlim(-0.5, 0.5)
-                self.lidar_ax2.set_ylim(-0.5, 0.5)
+                self.lidar_ax2.set_xlim(-2, 2)
+                self.lidar_ax2.set_ylim(-2, 2)
 
                 ## Set axis labels
                 # Plot 1
