@@ -64,7 +64,7 @@ private:
         mavlink_obstacle_distance_t horizontal;
         horizontal.time_usec = this->now().nanoseconds() / 1000;
         horizontal.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        horizontal.increment = 360.0 / count;
+        horizontal.increment = (360.0 / count) * 1000;
         horizontal.min_distance = 100;
         horizontal.max_distance = 50000;
         horizontal.increment_f = NAN;
@@ -74,7 +74,7 @@ private:
         mavlink_obstacle_distance_t diagonal1;
         diagonal1.time_usec = this->now().nanoseconds() / 1000;
         diagonal1.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal1.increment = 360.0 / count;
+        diagonal1.increment = (360.0 / count) * 1000;
         diagonal1.min_distance = 100;
         diagonal1.max_distance = 50000;
         diagonal1.increment_f = NAN;
@@ -84,14 +84,14 @@ private:
         mavlink_obstacle_distance_t diagonal2;
         diagonal2.time_usec = this->now().nanoseconds() / 1000;
         diagonal2.sensor_type = MAV_DISTANCE_SENSOR_LASER;
-        diagonal2.increment = 360.0 / count;
+        diagonal2.increment = (360.0 / count) * 1000;
         diagonal2.min_distance = 100;
         diagonal2.max_distance = 50000;
         diagonal2.increment_f = NAN;
         diagonal2.angle_offset = 228.0f;
         diagonal2.frame = MAV_FRAME_BODY_FRD;
 
-        RCLCPP_INFO(this->get_logger(), "increment : %f", 360.0 / count);
+        RCLCPP_INFO(this->get_logger(), "increment : %f", (360.0 / count) * 1000);
         
         int h = 0;
         int d1 = 0;
