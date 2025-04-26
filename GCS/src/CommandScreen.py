@@ -384,7 +384,7 @@ class CommandScreen:
                 angles2.append((i * data.increment) + data.angle_offset)
                 distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
-            print(data.angle_offset)
+            # print(data.angle_offset)
             # print(f"Angles: {angles2}")
             # print(f"Distances {distances}")
 
@@ -403,6 +403,8 @@ class CommandScreen:
                 self.diagonal1[3] = distances * np.cos(np.radians(angles2))
             # Top left to bottom right diagonal (diagonal2)
             elif data.angle_offset == 228:
+                print(f"Angles: {angles2}")
+                print(f"Distances {distances}")
                 self.diagonal2[0] = distances * np.sin(np.radians(angles))
                 self.diagonal2[1] = distances * np.cos(np.radians(angles))
                 self.diagonal2[2] = distances * np.sin(np.radians(angles2))

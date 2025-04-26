@@ -135,7 +135,7 @@ private:
                 diagonal1.distances[d1] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d1;
             }
-            else if (degree >= 312 && degree <= 305.5) { // mirrored 228 to 234.5
+            else if (degree >= 305.5 && degree <= 312) { // mirrored 228 to 234.5
                 diagonal2.distances[d2] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d2;
             }

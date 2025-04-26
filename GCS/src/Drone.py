@@ -189,7 +189,7 @@ class Drone:
         while True:
             # print('Checking for mavlink message')
             msg = self.mavlink_connection.recv_match(blocking=True)
-            print(f"Received mavlink message of type: {msg.get_type()}")
+            # print(f"Received mavlink message of type: {msg.get_type()}")
             if msg and msg.get_type() == 'OBSTACLE_DISTANCE':
                 # print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
                 # print(f"Received OBSTACLE_DISTANCE: {msg.to_dict()}")
