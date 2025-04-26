@@ -18,6 +18,11 @@
 #include "camera_scan_pkg/msg/obstacle.hpp"
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
 
+#define COLLISION_X 930
+#define COLLISION_X2 1037
+#define COLLISION_Y 949
+#define COLLISION_Y2 1009
+
 class ImageAnalysis : public rclcpp::Node {
    public:
     class TrackedObstacle {
@@ -187,8 +192,10 @@ class ImageAnalysis : public rclcpp::Node {
             // get min area rectangle
             cv::RotatedRect rect = cv::minAreaRect(cnt);
 
-            // Check if bounding box is large enough
-            if (rect.size.width * rect.size.height > 250) {
+            // Check if bounding box is large enough and within collision bounds
+            if (rect.size.width * rect.size.height > 250 &&
+                (rect.center.x >= COLLISION_X && rect.center.x <= COLLISION_X2) &&
+                (rect.center.y >= COLLISION_Y && rect.center.y <= COLLISION_Y2)) {
                 // Declare Obstacle variables
                 camera_scan_pkg::msg::Obstacle obstacle;
 
@@ -262,19 +269,28 @@ class ImageAnalysis : public rclcpp::Node {
 
                         // Preallocate memory for downloads
                         size_t keypoints_size = obstacle.keypoints.size();
-                        std::vector<cv::Point2f> nextPts;
-                        nextPts.reserve(keypoints_size);
-                        std::vector<unsigned char> status;
-                        status.reserve(keypoints_size);
+                        std::vector<cv::Point2f> nextPts(keypoints_size); 
+                        std::vector<unsigned char> status(keypoints_size);
 
-                        gpu_nextPts.download(cv::Mat(1, keypoints_size, CV_32FC2, nextPts.data()));
-                        gpu_status.download(cv::Mat(1, keypoints_size, CV_8U, status.data()));
+                        gpu_nextPts.download(nextPts); 
+                        gpu_status.download(status);
 
                         // Filter matched keypoints in place
                         size_t i = 0;
                         obstacle.keypoints.erase(
                             std::remove_if(obstacle.keypoints.begin(), obstacle.keypoints.end(),
-                                [&](const cv::Point2f& pt) { return status[i++] == 0; }),
+                                [&](cv::Point2f& pt) {
+                                    // Check for valid matched points and if they're within collision boundary
+                                    if ((status[i] == 1) &&
+                                        (nextPts[i].x >= COLLISION_X && nextPts[i].x <= COLLISION_X2) &&
+                                        (nextPts[i].y >= COLLISION_Y && nextPts[i].y <= COLLISION_Y2)) {
+                                        pt = nextPts[i]; // Updates point
+                                        ++i;
+                                        return false;
+                                    }
+                                    ++i;
+                                    return true;
+                                }),
                             obstacle.keypoints.end());
 
                         // If no keypoints remain, remove this obstacle
