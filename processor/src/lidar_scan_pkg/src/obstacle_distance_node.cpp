@@ -131,11 +131,11 @@ private:
                 horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++h;
             }
-            else if (degree >= 54.5 && degree <= 61) { // mirrored 119 to 125.5
+            else if (degree >= 54 && degree <= 61) { // mirrored 119 to 125.5
                 diagonal1.distances[d1] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d1;
             }
-            else if (degree >= 305.5 && degree <= 312) { // mirrored 228 to 234.5
+            else if (degree >= 305 && degree <= 312) { // mirrored 228 to 234.5
                 diagonal2.distances[d2] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d2;
             }
