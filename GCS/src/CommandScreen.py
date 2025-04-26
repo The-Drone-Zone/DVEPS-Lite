@@ -2,6 +2,7 @@ import cv2
 import os
 import sys
 import tkinter as tk
+from tkinter import ttk
 from Drone import Drone
 from LogWindow import LoggingWindow
 from Map import Map
@@ -43,12 +44,23 @@ class CommandScreen:
             "map_frame": tk.Button,
         }
 
+        # Header variables
+        self.header_frame: tk.Frame = None
+        self.drone_connection_container: tk.Frame = None
+        self.drone_connection_label: tk.Label = None
+        self.battery_container: tk.Frame = None
+        self.battery_label: tk.Label = None
+        self.create_header()
+
         # major command frames
         self.video_frame: tk.Frame = None
         self.video_frame_width = None
         self.video_frame_height = None
 
         self.lidar_frame: tk.Frame = None
+        self.lidar_notebook: ttk.Notebook = None
+        self.lidar_plot1_frame: tk.Frame = None
+        self.lidar_plot2_frame: tk.Frame = None
         self.map_frame: tk.Frame = None
         self.commands_frame: tk.Frame = None
         self.cap = cv2.VideoCapture(1)
@@ -61,14 +73,23 @@ class CommandScreen:
         self.update_video()
 
         ### LiDAR Frame Setup
-        # Create a Matplotlib figure
+        # Variables for storing x,y positions. format = [x1, y1, x2, y2]
+        self.horizontal = [None, None, None, None]
+        self.diagonal1 = [None, None, None, None]
+        self.diagonal2 = [None, None, None, None]
+        # Create a Matplotlib figures
         self.lidar_fig, self.lidar_ax = plt.subplots(figsize=(0.1, 0.1), dpi=150)
-
-        # Embed the Matplotlib plot into Tkinter canvas
-        self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_frame)
+        self.lidar_fig2, self.lidar_ax2 = plt.subplots(figsize=(0.1, 0.1), dpi=150)
+        # Embed the Matplotlib plots into Tkinter canvas
+        self.lidar_canvas = FigureCanvasTkAgg(self.lidar_fig, master=self.lidar_plot1_frame)
         self.lidar_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.lidar_canvas2 = FigureCanvasTkAgg(self.lidar_fig2, master=self.lidar_plot2_frame)
+        self.lidar_canvas2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        # Stores if a plot is currently being drawn
+        self.drawing_lidar_plot = False
 
-        self.update_lidar_plot() # For Simulating ONLY
+        # self.lidar_counter = 0 # For LiDAR Simulating ONLY
+        # self.update_lidar_plot() # For LiDAR Simulating ONLY
 
         ###############################################################################
         ###############################################################################
@@ -123,21 +144,53 @@ class CommandScreen:
 
         self.create_buttons()
 
-        # Drone connection display
+        self.update_drone_connected()
+        self.update_drone_battery()
+
+    def create_header(self):
+        # Header frame
+        self.header_frame = tk.Frame(self.command_tab, bg="white")
+        self.header_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
+
+        # Configure grid layout for the header_frame
+        self.header_frame.columnconfigure(0, weight=1)
+        self.header_frame.columnconfigure(1, weight=1)
+
+        # ====== LEFT TEXT ======
+        # Container frame to simulate padding/border
+        self.drone_connection_container = tk.Frame(self.header_frame, bg="tomato")
+        self.drone_connection_container.grid(row=0, column=0, sticky="w", padx=(0, 5))
+
+        # Drone connection display inside red container
         self.drone_connection_label = tk.Label(
-            self.command_tab,
+            self.drone_connection_container,
             text="Drone Not Connected",
-            justify=tk.CENTER,
+            bg="tomato",
+            anchor="w",
             font=("Helvetica", 15),
         )
-        self.drone_connection_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
-        self.update_drone_connected()
+        self.drone_connection_label.pack(fill="both", padx=40, pady=2)
+
+        # ====== RIGHT TEXT ======
+        # Container frame to simulate padding/border
+        self.battery_container = tk.Frame(self.header_frame, bg="tomato")
+        self.battery_container.grid(row=0, column=1, sticky="e", padx=(5, 0))
+
+        # Battery % Display
+        self.battery_label = tk.Label(
+            self.battery_container,
+            text="Battery Remaining: N/A",
+            bg="tomato",
+            anchor="e",
+            font=("Helvetica", 15),
+        )
+        self.battery_label.pack(fill="both", padx=40, pady=2)
 
     def create_frames(self):
 
         # grid_row/column configure ensures row or column fills available space with equal weight
-        self.command_tab.grid_rowconfigure(0, weight=3)
-        self.command_tab.grid_rowconfigure(1, weight=2)
+        self.command_tab.grid_rowconfigure(1, weight=3)
+        self.command_tab.grid_rowconfigure(2, weight=2)
         self.command_tab.grid_columnconfigure(0, weight=1)
         self.command_tab.grid_columnconfigure(1, weight=1)
 
@@ -147,30 +200,44 @@ class CommandScreen:
             window=self.command_tab, name="video_frame", bg="lightblue"
         )
         self.frame_wrapper.add_to_window(
-            self.video_frame, row=0, column=0, sticky="nsew"
+            self.video_frame, row=1, column=0, sticky="nsew"
         )
 
-        # Create lidar frame
+        ##  Create lidar frames
+        # Outermost frame
         self.lidar_frame = self.frame_wrapper.create_frame(
             window=self.command_tab, name="lidar_frame", bg="lightgreen"
         )
         self.frame_wrapper.add_to_window(
-            self.lidar_frame, row=0, column=1, sticky="nsew"
+            self.lidar_frame, row=1, column=1, sticky="nsew"
         )
         self.lidar_frame.grid_propagate(False)
+        # Create Notebook for both Lidar plots
+        self.lidar_notebook = ttk.Notebook(self.lidar_frame)
+        # Lidar plot 1
+        self.lidar_plot1_frame = self.frame_wrapper.create_frame(
+            window=self.lidar_notebook, name="lidar_plot1_frame", bg="lightgreen"
+        )
+        # Lidar plot 2
+        self.lidar_plot2_frame = self.frame_wrapper.create_frame(
+            window=self.lidar_notebook, name="lidar_plot2_frame", bg="lightgreen"
+        )
+        self.lidar_notebook.pack(expand=True, fill="both")
+        self.lidar_notebook.add(self.lidar_plot1_frame, text="Forward Plot")
+        self.lidar_notebook.add(self.lidar_plot2_frame, text="360 Plot")
 
         # Create Map frame
         self.map_frame = self.frame_wrapper.create_frame(
             window=self.command_tab, name="map_frame", bg="yellow"
         )
-        self.frame_wrapper.add_to_window(self.map_frame, row=1, column=0, sticky="nsew")
+        self.frame_wrapper.add_to_window(self.map_frame, row=2, column=0, sticky="nsew")
 
         # Create Commands frame
         self.commands_frame = self.frame_wrapper.create_frame(
             window=self.command_tab, name="command_frame", bg="red"
         )
         self.frame_wrapper.add_to_window(
-            self.commands_frame, row=1, column=1, sticky="nsew"
+            self.commands_frame, row=2, column=1, sticky="nsew"
         )
 
     def create_buttons(self):
@@ -260,16 +327,30 @@ class CommandScreen:
         self.logs.addUserLog("User minimized a view in the command tab")
 
     def update_drone_connected(self):
-        if self.drone.connected and self.drone.gps_ok:
-            self.drone_connection_label.config(text="Drone Ready")
+        if self.drone.connected and self.drone.gps_ok and self.drone.armable:
+            self.drone_connection_label.config(text="Drone Ready", bg="lightgreen")
+            self.drone_connection_container.config(bg="lightgreen")
         elif self.drone.connected:
-            self.drone_connection_label.config(text="Drone Connected")
+            self.drone_connection_label.config(text="Drone Connected", bg="yellow")
+            self.drone_connection_container.config(bg="yellow")
         else:
-            self.drone_connection_label.config(text="Drone Not Connected")
+            self.drone_connection_label.config(text="Drone Not Connected", bg="tomato")
+            self.drone_connection_container.config(bg="tomato")
+
+    def update_drone_battery(self):
+        if self.drone.battery_percent > 65:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="lightgreen")
+            self.battery_container.config(bg="lightgreen")
+        elif self.drone.battery_percent > 30:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="yellow")
+            self.battery_container.config(bg="yellow")
+        else:
+            self.battery_label.config(text=f"Battery Remaining: {self.drone.battery_percent}%", bg="tomato")
+            self.battery_container.config(bg="tomato")
 
     def create_video_display(self):
         self.video_label = tk.Label(self.video_frame)
-        self.video_label.grid(row=0, column=0, sticky="nsew")
+        self.video_label.grid(row=1, column=0, sticky="nsew")
 
 
     def update_video(self):
@@ -293,52 +374,131 @@ class CommandScreen:
     # data is of type OBSTACLE_DISTANCE from px4_msgs
     def update_lidar_plot(self, data=None):
         def update():
+            # For actual display
+            data.increment /= 1000.0
+            angles = []
+            angles2 = []
+            distances = []
+            for i in range(len(data.distances)):
+                angles.append((i * data.increment))
+                angles2.append((i * data.increment) + data.angle_offset)
+                distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
+
+            # print(data.angle_offset)
+            # print(f"Angles: {angles2}")
+            # print(f"Distances {distances}")
+
+            ## Convert polar to cartesian coordinates (For actual display)
+            # Horizontal line
+            if data.angle_offset == -3:
+                self.horizontal[0] = distances * np.sin(np.radians(angles))
+                self.horizontal[1] = distances * np.cos(np.radians(angles))
+                self.horizontal[2] = distances * np.sin(np.radians(angles2))
+                self.horizontal[3] = distances * np.cos(np.radians(angles2))
+            # Bottom left to top right diagonal (diagonal1)
+            elif data.angle_offset == 119:
+                self.diagonal1[0] = distances * np.sin(np.radians(angles))
+                self.diagonal1[1] = distances * np.cos(np.radians(angles))
+                self.diagonal1[2] = distances * np.sin(np.radians(angles2))
+                self.diagonal1[3] = distances * np.cos(np.radians(angles2))
+            # Top left to bottom right diagonal (diagonal2)
+            elif data.angle_offset == 228:
+                print(f"Angles: {angles2}")
+                print(f"Distances {distances}")
+                self.diagonal2[0] = distances * np.sin(np.radians(angles))
+                self.diagonal2[1] = distances * np.cos(np.radians(angles))
+                self.diagonal2[2] = distances * np.sin(np.radians(angles2))
+                self.diagonal2[3] = distances * np.cos(np.radians(angles2))
+
             # Simulate incoming LiDAR data (Replace this with real data)
-            angles = np.linspace(-30, 30, 72)  # 72 points for -60 to 60 degrees
-            distances = np.random.uniform(20, 30, size=72)  # Random distances for simulation
+            # angles = np.linspace(-4, 4, 50) 
+            # angles2 = np.linspace(0, 360, 50)
+            # distances = np.random.uniform(20, 30, size=50)  # Random distances for simulation
 
-            ## For actual display
-            # # # distances = []
-            # angles = []
-            # for i in range(len(data.distances)):
-            #     # distances.append(data.distances[i])
-            #     angles.append(i * data.increment)
-            
-            # Convert polar to cartesian coordinates
-            y = distances * np.cos(np.radians(angles)) # For simulated display
-            x = distances * np.sin(np.radians(angles)) # For simulated display
-            # y = data.distances * np.cos(np.radians(angles)) # For actual display
-            # x = data.distances * np.sin(np.radians(angles)) # For actual display
-            
-            # Clear previous plot and plot new data
-            self.lidar_ax.clear()
-            self.lidar_ax.scatter([0], [0.5], color='red', s=500) # Represents drone position
-            self.lidar_ax.scatter(x, y, color='blue', s=25)  # Draw lidar points
+            # ## Convert polar to cartesian coordinates (FOR SIMULATION ONLY)
+            # # Horizontal line
+            # if self.lidar_counter % 3 == 0:
+            #     self.horizontal[0] = distances * np.sin(np.radians(angles))
+            #     self.horizontal[1] = distances * np.cos(np.radians(angles))
+            #     self.horizontal[2] = distances * np.sin(np.radians(angles2))
+            #     self.horizontal[3] = distances * np.cos(np.radians(angles2))
+            # # Bottom left to top right diagonal (diagonal1)
+            # elif self.lidar_counter % 3 == 1:
+            #     self.diagonal1[0] = distances * np.sin(np.radians(angles))
+            #     self.diagonal1[1] = distances * np.cos(np.radians(angles))
+            #     self.diagonal1[2] = distances * np.sin(np.radians(angles2))
+            #     self.diagonal1[3] = distances * np.cos(np.radians(angles2))
+            # # Top left to bottom right diagonal (diagonal2)
+            # elif self.lidar_counter % 3 == 2:
+            #     self.diagonal2[0] = distances * np.sin(np.radians(angles))
+            #     self.diagonal2[1] = distances * np.cos(np.radians(angles))
+            #     self.diagonal2[2] = distances * np.sin(np.radians(angles2))
+            #     self.diagonal2[3] = distances * np.cos(np.radians(angles2))
 
-            # Set axis limits
-            self.lidar_ax.set_xlim(-15, 15)
-            self.lidar_ax.set_ylim(0, 30)
+            # Check if another thread is currently drawing and if this is the end of the scan (3rd message/diagonal2)
+            if not self.drawing_lidar_plot and data.angle_offset == 228:
+                self.drawing_lidar_plot = True
+                ## Clear previous plot and plot new data
+                # Plot 1
+                self.lidar_ax.clear()
+                self.lidar_ax.scatter([0], [0], color='orange', s=500) # Represents drone position
+                self.lidar_ax.scatter(self.horizontal[0], self.horizontal[1], color='blue', s=25)  # Draw horizontal lidar points
+                self.lidar_ax.scatter(self.diagonal1[0], self.diagonal1[1], color='red', s=25)  # Draw diagonal1 lidar points
+                self.lidar_ax.scatter(self.diagonal2[0], self.diagonal2[1], color='green', s=25)  # Draw diagonal2 lidar points
+                # Plot 2
+                self.lidar_ax2.clear()
+                self.lidar_ax2.scatter([0], [0], color='orange', s=500) # Represents drone position
+                self.lidar_ax2.scatter(self.horizontal[2], self.horizontal[3], color='blue', s=25)  # Draw horizontal lidar points
+                self.lidar_ax2.scatter(self.diagonal1[2], self.diagonal1[3], color='red', s=25)  # Draw diagonal1 lidar points
+                self.lidar_ax2.scatter(self.diagonal2[2], self.diagonal2[3], color='green', s=25)  # Draw diagonal2 lidar points
 
-            # Set axis labels
-            self.lidar_ax.set_xlabel("Horizontal Distance (m)")
-            self.lidar_ax.set_ylabel("Vertical Distance (mm)")
+                ## Set axis limits
+                # Plot 1
+                self.lidar_ax.set_xlim(-1, 1)
+                self.lidar_ax.set_ylim(0, 3)
+                # Plot 2
+                self.lidar_ax2.set_xlim(-3, 3)
+                self.lidar_ax2.set_ylim(-3, 3)
 
-            # Set title
-            self.lidar_ax.set_title("LiDAR Scan Visualization")
+                ## Set axis labels
+                # Plot 1
+                self.lidar_ax.set_xlabel("Horizontal Distance (m)")
+                self.lidar_ax.set_ylabel("Vertical Distance (m)")
+                # Plot 2
+                self.lidar_ax2.set_xlabel("Horizontal Distance (m)")
+                self.lidar_ax2.set_ylabel("Vertical Distance (m)")
 
-            # Set aspect ratio (optional, if you want the axes to scale equally)
-            self.lidar_ax.set_aspect('equal', 'box')
+                # Set titles
+                self.lidar_ax.set_title("LiDAR Scan Visualization")
+                self.lidar_ax2.set_title("360 LiDAR Scan Visualization")
 
-            # Set axis scale (example: log scale for distance)
-            self.lidar_ax.set_xscale('linear')
-            self.lidar_ax.set_yscale('linear')
-            
-            # Redraw the canvas
-            self.lidar_canvas.draw()
+                ## Set axis scale (example: log scale for distance)
+                # Plot 1
+                self.lidar_ax.set_xscale('linear')
+                self.lidar_ax.set_yscale('linear')
+                # Plot 2
+                self.lidar_ax2.set_xscale('linear')
+                self.lidar_ax2.set_yscale('linear')
+                
+                # Redraw the canvas
+                self.lidar_canvas.draw()
+                self.lidar_canvas2.draw()
 
-            # Schedule the next update (e.g., 100 ms)
-            self.lidar_frame.after(10, self.update_lidar_plot)
+                # Open plot to be redrawn
+                self.drawing_lidar_plot = False
+
+                # Schedule the next update (e.g., 100 ms)
+                # self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
+                # self.lidar_counter += 1 # FOR SIMULATION ONLY
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)
         thread.start()
+
+    def create_popup(self, message):
+        self.window_wrapper.display_message(message)
+
+    def tab_selected(self, event):  # TODO DELETE LATER
+        self.lidar_notebook = event.widget
+        tab_id = self.lidar_notebook.select()
+        tab_text = self.lidar_notebook.tab(tab_id, "text")

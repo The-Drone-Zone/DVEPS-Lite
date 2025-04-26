@@ -1,10 +1,10 @@
+import os
 from mavsdk import System
 from mavsdk.mission import MissionItem, MissionPlan
 from pymavlink import mavutil
 from Utils.Enums import DRONE_STATE
 from Utils.wrappers.WindowWrapper import WindowWrapper
 import asyncio
-import os
 import threading
 
 
@@ -23,6 +23,8 @@ class Drone:
         self.disconnect_counter = 0 # For checking connection (3 missed/false connections = disconnection)
         self.connect_counter = 0 # For checking connection (2 True = connected)
         self.gps_ok = False
+        self.armable = False
+        self.battery_percent = 0
 
         self.logs = logs
         self.settings = settings
@@ -48,20 +50,6 @@ class Drone:
         self.drone = System(mavsdk_server_address="localhost", port=50051)
         await self.drone.connect(system_address="udp://127.0.0.1:14551")
         print('Connected to MAVSDK!')
-
-        # if os.name == "nt":  # Windows
-
-        #     self.drone = System(mavsdk_server_address="localhost", port=50051)
-        #     await self.drone.connect(
-        #         system_address="serial://COM3:57600"
-        #     )
-        # elif os.name == "posix":  # Linux/macOS
-
-        #     self.drone = System()
-        #     await self.drone.connect(
-        #         system_address="serial:///dev/ttyUSB0:57600"
-        #     )
-
 
         # Setup Drone Configuration based on Settings
         asyncio.run_coroutine_threadsafe(self.set_takeoff_height_drone(), self.loop)
@@ -93,7 +81,10 @@ class Drone:
         self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
 
     def mavlink_setup(self):
-        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552")
+        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552", 
+            baud=57600,
+            dialect='common',
+            force_mavlink2=True)
         self.mavlink_connection.wait_heartbeat()
         print("Connected to MAVLink!")
         # Start loop to receive LiDAR data
@@ -104,9 +95,15 @@ class Drone:
         async for status_text in self.drone.telemetry.status_text():
             if self.connected:
                 self.logs.addDroneLog(f"Status: {status_text.type}: {status_text.text}")
+                if "Arming denied" in status_text.text:
+                    self.command_tab.create_popup(f"{status_text.type}: {status_text.text}")
 
     async def print_battery(self):
         async for battery in self.drone.telemetry.battery():
+            if self.connected:
+                self.battery_percent = battery.remaining_percent
+                if self.command_tab:
+                    self.command_tab.update_drone_battery()
             if self.connected and self.gps_ok:
                 self.logs.addDroneLog(f"Battery: {battery.remaining_percent}%")
             await asyncio.sleep(2)
@@ -134,8 +131,13 @@ class Drone:
 
     async def check_drone_connection(self):
         async for state in self.drone.core.connection_state():
+<<<<<<< HEAD
             # print(f"Connection: {state.is_connected} | connect_count: {self.connect_counter} | disconnect_count: {self.disconnect_counter}") # For DEBUGGING
             if state.is_connected and not self.connected and self.connect_counter >= 1:
+=======
+            # print(f"Connection: {state.is_connected}") # Keep for future debugging
+            if state.is_connected and not self.connected:
+>>>>>>> develop
                 self.logs.addDroneLog("-- Connected to drone!")
                 self.connected = True
                 self.disconnect_counter = 0
@@ -159,7 +161,9 @@ class Drone:
 
     async def check_drone_health(self):
         async for health in self.drone.telemetry.health():
-            print(f"global: {health.is_global_position_ok} | local: {health.is_local_position_ok}") # Keep for GPS debugging
+
+            # Check GPS estimates
+            # print(f"global: {health.is_global_position_ok} | local: {health.is_local_position_ok}") # Keep for GPS debugging
             if health.is_global_position_ok and health.is_home_position_ok and not self.gps_ok:
                 self.gps_ok = True
                 self.logs.addDroneLog("-- Global position estimate OK")
@@ -172,20 +176,31 @@ class Drone:
                 self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
                 if self.command_tab:
                     self.command_tab.update_drone_connected()
+
+            # Check if drone is armable (pre-flight checklist)
+            if health.is_armable and not self.armable:
+                self.armable = True
+                self.logs.addDroneLog("-- Drone is armable and ready for flight")
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
+            elif (not health.is_armable) and self.armable:
+                self.armable = False
+                self.logs.addDroneLog("-- Drone not armable, check pre-flight errors")
+                if self.command_tab:
+                    self.command_tab.update_drone_connected()
             await asyncio.sleep(1)
 
     def get_lidar_samples(self):
         while True:
-            print('Checking for mavlink message')
+            # print('Checking for mavlink message')
             msg = self.mavlink_connection.recv_match(blocking=True)
-            print(f"Received mavlink message of type: {msg.get_type()}")
-            # msg = self.mavlink_connection.recv_match(type='OBSTACLE_DISTANCE', blocking=True)
-            # print('Passed mavlink message')
-            # if msg:
-            #     print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
-            #     self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg.distances}")
-            #     if self.command_tab:
-            #         self.command_tab.update_lidar_plot(msg)
+            # print(f"Received mavlink message of type: {msg.get_type()}")
+            if msg and msg.get_type() == 'OBSTACLE_DISTANCE':
+                # print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
+                # print(f"Received OBSTACLE_DISTANCE: {msg.to_dict()}")
+                self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg.distances}")
+                if self.command_tab:
+                    self.command_tab.update_lidar_plot(msg)
 
     ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):
