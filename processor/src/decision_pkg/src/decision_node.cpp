@@ -21,6 +21,11 @@ enum STATES {
     FORWARD
 };
 
+struct Mapping {
+    camera_scan_pkg::msg::ObstacleArray mapped_image_obstacles;
+    custom_msg_pkg::msg::LidarPosition mapped_lidar_samples;
+}
+
 class DecisionController : public rclcpp::Node {
     public:
         long int time_sum = 0;
@@ -63,6 +68,7 @@ class DecisionController : public rclcpp::Node {
 
         camera_scan_pkg::msg::ObstacleArray image_obstacles;
         custom_msg_pkg::msg::LidarPosition lidar_samples;
+        Mapping mapping;
         int turn_count = 0;
 
 
@@ -74,15 +80,13 @@ class DecisionController : public rclcpp::Node {
 
             //printImageObstacles(msg);
             image_obstacles = *msg;
+            mapping.mapped_image_obstacles = *msg;
 
             if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
             }
-            
-
-            // Image to LiDAR map function call goes here
 
             // End time
             auto end = std::chrono::high_resolution_clock::now();
@@ -101,15 +105,15 @@ class DecisionController : public rclcpp::Node {
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
 
+            lidar_samples = *msg;
+            mapping.mapped_lidar_samples = *msg;
+
             // Image to LiDAR map function call goes here
-            if(msg->stop) {
+            if(msg->stop && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOPPING");
-                //my drone command PR needs to pushed to dev before I pull in changes here.
+                publish_control_command(custom_msg_pkg::msg::Command::STOP);
+                outstanding_ack.store(true, std::memory_order_release);
             }
-
-            //PROCESS XYZ COORDINATE MAPPING HERE MAYBE
-
-            //NEED TO HAVE THE DRONE COMMAND PUSHED IN ORDER TO USE the current location functionality.
 
             // End time
             auto end = std::chrono::high_resolution_clock::now();
@@ -120,6 +124,13 @@ class DecisionController : public rclcpp::Node {
             time_sum += duration_ms.count();
             counter += 1;
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
+        }
+
+        void check_mapping() {
+           if (mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 100 && mapping.mapped_lidar_samples.least_range > 0)) {
+                RCLCPP_INFO(this->get_logger(), "Camera and Lidar Both see somthing");
+                publish_control_command(custom_msg_pkg::msg::Command::STOP);
+           }
         }
 
 
