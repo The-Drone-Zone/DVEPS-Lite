@@ -71,7 +71,7 @@ private:
 
     void send_obstacle_distance(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
         // Only send every 3 scans
-        if (scan_counter_++ % 3 != 0) {
+        if (scan_counter_++ % 5 != 0) {
             return;
         }
 
@@ -127,15 +127,15 @@ private:
                 degree += 360;
             }
             // RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-            if (degree >= 0 && degree <= 3) {
+            if (degree >= 177 && degree <= 183) { // mirrored -3 to 3 
                 horizontal.distances[h] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++h;
             }
-            else if (degree >= 119 && degree <= 125.5) {
+            else if (degree >= 54.5 && degree <= 61) { // mirrored 119 to 125.5
                 diagonal1.distances[d1] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d1;
             }
-            else if (degree >= 228 && degree <= 234.5) {
+            else if (degree >= 312 && degree <= 305.5) { // mirrored 228 to 234.5
                 diagonal2.distances[d2] = scan->ranges[i] * 100; // need to convert distance to cm (starts in mm)
                 ++d2;
             }
