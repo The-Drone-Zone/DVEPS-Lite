@@ -61,13 +61,6 @@ class SLLidarClient : public rclcpp::Node {
                 GCS_msg.increment = scan->angle_increment * 45 * 10000;
             }
         }
-        // Try this if the top loop doesn't work
-        // for (int i = 0; i < 72; ++i) {
-        //     float degree = RAD2DEG(scan->angle_min + (scan->angle_increment * i * 45));
-        //     RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i * 45]);
-        //     GCS_msg.distances[i] = scan->ranges[i * 45];
-        //     GCS_msg.increment = scan->angle_increment * 45;
-        // }
 
         RCLCPP_INFO(this->get_logger(), "range_size : %d", count);
         pixhawk_pub->publish(GCS_msg);
@@ -81,109 +74,106 @@ class SLLidarClient : public rclcpp::Node {
         int danger_beam_count = 0;
         custom_msg_pkg::msg::LidarPosition msg;
         msg.stop = false;
-        //msg.least_val = 50;
+        msg.least_range = 100;
+
+        for(int i = 0; i < count; ++i) {
+            if( !(degree > 0 && degree < 1.0) && !( dgree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
+                continue;                
+            }
+
+            if(scan->ranges[i] < msg.least_range) {
+                msg.least_range = scan->ranges[i]; //find the least range value in the scan
+            }
+        }
+
+        if (scan_history_.size() >= HISTORY_SIZE) {
+            scan_history_.erase(vec.begin());
+        }
+        scan_history_.push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
 
         if (scan_history_.size() < 2) return;
 
-        //go through each beam in the 360 degree scan
-        for(int i = 0; i < count; ++i){
-            float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-            if (degree < 0) {
-                degree += 360.0;
-            }
-            // RCLCPP_WARN(this->get_logger(), "DEGREE: %f, Range: %f", degree, scan->ranges[i]); // DEBUG DELETE LATER
-
-            //Angles outisde the drone hitbox at 20 meters can be ignored.
-            if( !(degree > 178.5 && degree < 181.5) && !( degree > 60.5 && degree < 64.5 ) && !( degree > 306.5  && degree < 310.5 ) ){
-                continue;
-            }
-
-            // if(scan->ranges[i] < msg.least_val) {
-            //     msg.least_val = scan->ranges[i]; //find the least range value in the scan
-            // }
-
-            //least range value pass into message.
-            float ZERO = .001;
-            std::vector<float> range_over_time;
-            for (const auto& past_scan : scan_history_) {
-                float value = past_scan[i];
-                if (value > ZERO && value < 40.00) {
-                    range_over_time.push_back(value);
-                }
-            }
-
-            if (range_over_time.size() < 3) continue; // Not enough data to analyze
-
-            //DEBUG ONLY DELETE BEFORE PR
-            // std::cout << "Values at index " << i << " (degree: " << degree << "): ";
-            // for (const auto& r : range_over_time) {
-            //     std::cout << r << " ";
-            // }
-            // std::cout << std::endl;
-
-            float total_velocity = 0.0;
-            for (size_t j = 1; j < range_over_time.size(); ++j) {
-                float v = (range_over_time[j - 1] - range_over_time[j]) / time_bewteen_full_scans; //distance over time is velocity
-                total_velocity += v;
-            }
-            float avg_velocity = total_velocity / (range_over_time.size() - 1); //minus 1 because we are looking at the intervals bewtween the ranges
-
-            // if (avg_velocity > 2 || total_velocity > 2){
-            //     RCLCPP_WARN(this->get_logger(), "total_velocity: %f", total_velocity); // DEBUG DELETE LATER
-            //     RCLCPP_WARN(this->get_logger(), "avg_velocity  : %f", avg_velocity); // DEBUG DELETE LATER
-            //     std::cout << "Values at index " << i << " (degree: " << degree << "): ";
-            //     for (const auto& r : range_over_time) {
-            //         std::cout << r << " ";
-            //     }
-            //     std::cout << std::endl;
-            // }
-
-            float current_range = range_over_time.back(); //most recent range data
-
-            if (avg_velocity > 0.0) {
-                //RCLCPP_WARN(this->get_logger(), "avg_velocity  : %f", avg_velocity); // DEBUG DELETE LATER
-                float collision_time = current_range / avg_velocity; //collision_time = time to collision based on the most recent rnge value and the average velocity of the object
-                // RCLCPP_WARN(this->get_logger(), "collision_time  : %f", collision_time); // DEBUG DELETE LATER
-
-                if (collision_time < 4.0) { //4.0 because we are going at 5/ms and 4*5 = 20 meters
-                    danger_beam_count++; //Here I am using multiple beams to signal a stop not just 1 beam
-                }
-
-                if (danger_beam_count >= 3) { //I just chose a randum number 3 as the beam number.
-                   break;
-                }
-            }
+        float total_velocity = 0.0;
+        for(int i = 1; i < scan_history_.size(); ++i) {
+            float v = (scan_history_[i - 1] - scan_history_[i]) / time_bewteen_full_scans; //distance over time is velocity
+            total_velocity += v;
         }
+        float average_velocity = total_velocity / (scan_history_.size() - 1); //minus 1 because we are looking at the intervals bewtween the ranges
+        float current_range = scan_history_.back()[0]; //most recent range data
 
-        if (danger_beam_count >= 3) { //I just chose a randum number 3 as the beam number.
-            RCLCPP_INFO(this->get_logger(), "DANGER BEAM: STOP STOP STOP");
-            msg.stop = true;
-        }
+        if(average_velocity > 0.0) {
+            float collision_time = current_range / average_velocity; //collision_time = time to collision based on the most recent rnge value and the average velocity of the object
+            //RCLCPP_INFO(this->get_logger(), "Collision Time: %f", collision_time);
+            if (collision_time < 4.0) { //4.0 because we are going at 5/ms and 4*5 = 20 meters
+                msg.stop = true; //Here I am using multiple beams to signal a stop not just 1 beam
+            }
+        } 
+        
 
-<<<<<<< HEAD
-=======
-        //         //MEASURED IN RADIANS
-        //         float X_radians = cos(scan->angle_min + scan->angle_increment * i);
-        //         float Y_radians = sin(scan->angle_min + scan->angle_increment * i);
-        //         float potential = -.5 * k * pow( ( (1/current_scan.ranges[i]) - (1/d0) ), 2 );
-        //         sum_of_potential_x += X_radians * potential;
-        //         sum_of_potential_y += Y_radians * potential;
+        // if (scan_history_.size() < 2) return;
+
+        // //go through each beam in the 360 degree scan
+        // for(int i = 0; i < count; ++i){
+        //     float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+
+        //     //Angles outisde the drone hitbox at 20 meters can be ignored.
+        //     if( !(degree > 0 && degree < 1.0) && !( dgree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
+        //         continue;                
         //     }
-            
+
+        //     if(scan->ranges[i] < msg.least_range) {
+        //         msg.least_range = scan->ranges[i]; //find the least range value in the scan
+        //     }
+
+        //     //least range value pass into message.
+        //     std::vector<float> range_over_time;
+        //     for (const auto& past_scan : scan_history_) {
+        //         if (i < past_scan.size()) {
+        //             range_over_time.push_back(past_scan[i]);
+        //         }
+        //     }
+
+        //     if (range_over_time.size() < 2) continue; // Not enough data to analyze
+
+        //     float total_velocity = 0.0;
+        //     for (size_t j = 1; j < range_over_time.size(); ++j) {
+        //         float v = (range_over_time[j - 1] - range_over_time[j]) / time_bewteen_full_scans; //distance over time is velocity
+        //         total_velocity += v;
+        //     }
+        //     float average_velocity = total_velocity / (range_over_time.size() - 1); //minus 1 because we are looking at the intervals bewtween the ranges
+
+        //     float current_range = range_over_time.back(); //most recent range data
+
+        //     if (avg_velocity > 0.0) {
+        //         float collision_time = current_range / avg_velocity; //collision_time = time to collision based on the most recent rnge value and the average velocity of the object
+        //         if (collision_time < 4.0) { //4.0 because we are going at 5/ms and 4*5 = 20 meters
+        //             danger_beam_count++; //Here I am using multiple beams to signal a stop not just 1 beam
+        //         }
+        //     }
         // }
 
-        // msg.sum_of_potential_x = sum_of_potential_x;
-        // msg.sum_of_potential_y = sum_of_potential_y;
+        // if (danger_beam_count >= 3) { //I just chose a randum number 3 as the beam number. 
+        //     msg.stop = true;
+        // }
 
-        // //XYZ COORDINATE MAPPING GOES HERE
-        
-        // msg.z.assign(scan->ranges.begin(), scan->ranges.end());
-        // msg.x.resize(count, 0.0);
-        // msg.y.resize(count, 0.0);
-
->>>>>>> f9542a4e564be0522f3bf01f159f5cd36fadaa68
-        // pub->publish(msg);
+        pub->publish(msg);
     }
+
+    void push_back_with_size(std::vector<float>& vec, float value, size_t max_size) {
+        if (vec.size() >= max_size) {
+            vec.erase(vec.begin());  // Remove the oldest element
+        }
+        vec.push_back(value);
+    }
+
+    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
+    rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
+    rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
+
+    // std::deque<std::vector<float>> scan_history_;
+    std::vector<float> scan_history_[HISTORY_SIZE];
+    const size_t HISTORY_SIZE = 5;
+    int danger_count_ = 0;
 };
 
 int main(int argc, char **argv) {
