@@ -26,6 +26,7 @@ class SLLidarClient : public rclcpp::Node {
             "scan", rclcpp::SensorDataQoS(), std::bind(&SLLidarClient::scanCallback, this, std::placeholders::_1));
 
         analysis_pub = this->create_publisher<custom_msg_pkg::msg::LidarPosition>("Lidar/analysis", rclcpp::QoS(rclcpp::KeepLast(10)));
+        pixhawk_pub = this->create_publisher<px4_msgs::msg::ObstacleDistance>("/fmu/in/obstacle_distance", 10);
     }
 
    private:
@@ -34,20 +35,35 @@ class SLLidarClient : public rclcpp::Node {
         RCLCPP_INFO(this->get_logger(), "I heard a laser scan %s[%d]", scan->header.frame_id.c_str(), count);
         RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
 
-        std::vector<float> current_ranges = scan->ranges;
-        if (scan_history_.size() >= HISTORY_SIZE) {
-            scan_history_.pop_front();
+        // For testing lidar messages (we can change which points we publish later)
+        px4_msgs::msg::ObstacleDistance GCS_msg = px4_msgs::msg::ObstacleDistance();
+        GCS_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
+        GCS_msg.frame = px4_msgs::msg::ObstacleDistance::MAV_FRAME_BODY_FRD;
+        GCS_msg.sensor_type = px4_msgs::msg::ObstacleDistance::MAV_DISTANCE_SENSOR_LASER;
+        GCS_msg.increment = 1125;  // degrees per measurement
+        GCS_msg.min_distance = 100;  // 100 cm = 1 m
+        GCS_msg.max_distance = 4000;  // 4000 cm = 40 m
+        GCS_msg.angle_offset = 0.0f;
+
+        for (int i = 0; i < count; i+= 45) {
+            if (i <= count) {
+                float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+                RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
+                GCS_msg.distances[i / 45] = scan->ranges[i] * 100; // need to convert distance to cm (if not already)
+                GCS_msg.increment = scan->angle_increment * 45 * 10000;
+            }
         }
-        scan_history_.push_back(current_ranges);
-        // for (int i = 0; i < count; i+= 45) {
-        //     if (i <= count) {
-        //         float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-        //         RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-        //     }
+        // Try this if the top loop doesn't work
+        // for (int i = 0; i < 72; ++i) {
+        //     float degree = RAD2DEG(scan->angle_min + (scan->angle_increment * i * 45));
+        //     RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i * 45]);
+        //     GCS_msg.distances[i] = scan->ranges[i * 45];
+        //     GCS_msg.increment = scan->angle_increment * 45;
         // }
 
         RCLCPP_INFO(this->get_logger(), "range_size : %d", count);
-        publish_analysis(this->analysis_pub, scan, count, scan->scan_time);
+        pixhawk_pub->publish(GCS_msg);
+        publish_analysis(this->analysis_pub, scan, count);
     }
 
     void publish_analysis(rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr& pub, 
@@ -104,7 +120,26 @@ class SLLidarClient : public rclcpp::Node {
             msg.stop = true;
         }
 
-        pub->publish(msg);
+        //         //MEASURED IN RADIANS
+        //         float X_radians = cos(scan->angle_min + scan->angle_increment * i);
+        //         float Y_radians = sin(scan->angle_min + scan->angle_increment * i);
+        //         float potential = -.5 * k * pow( ( (1/current_scan.ranges[i]) - (1/d0) ), 2 );
+        //         sum_of_potential_x += X_radians * potential;
+        //         sum_of_potential_y += Y_radians * potential;
+        //     }
+            
+        // }
+
+        // msg.sum_of_potential_x = sum_of_potential_x;
+        // msg.sum_of_potential_y = sum_of_potential_y;
+
+        // //XYZ COORDINATE MAPPING GOES HERE
+        
+        // msg.z.assign(scan->ranges.begin(), scan->ranges.end());
+        // msg.x.resize(count, 0.0);
+        // msg.y.resize(count, 0.0);
+
+        // pub->publish(msg);
     }
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
