@@ -28,6 +28,7 @@ def generate_launch_description():
             remappings=[
                 ('output_obstacles', '/camera_scan_pkg/output_obstacles'),
                 ('Lidar/analysis', '/custom_msg_pkg/Lidar/analysis'),
+                ('DecisionController/command_ack', 'drone_commander_pkg/command_ack')
             ]
         ),
         Node(

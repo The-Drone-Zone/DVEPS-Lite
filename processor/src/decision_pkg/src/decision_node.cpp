@@ -70,12 +70,12 @@ class DecisionController : public rclcpp::Node {
         camera_scan_pkg::msg::ObstacleArray image_obstacles;
         custom_msg_pkg::msg::LidarPosition lidar_samples;
         Mapping mapping;
-        bool reached_analysis_height = false;
+        std::atomic<bool> reached_analysis_height = false;
         int turn_count = 0;
 
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
-            if(!reached_analysis_height) return;
+            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -103,7 +103,7 @@ class DecisionController : public rclcpp::Node {
         }
 
         void lidarCallback(const custom_msg_pkg::msg::LidarPosition::SharedPtr msg) {
-            if(!reached_analysis_height) return;
+            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -129,12 +129,12 @@ class DecisionController : public rclcpp::Node {
         }
 
         void check_mapping() {
-            if(!reached_analysis_height) return;
+            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
 
-           if (mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 100 && mapping.mapped_lidar_samples.least_range > 0)) {
-                RCLCPP_INFO(this->get_logger(), "Camera and Lidar Both see somthing");
-                publish_control_command(custom_msg_pkg::msg::Command::STOP);
-           }
+            if (mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 100 && mapping.mapped_lidar_samples.least_range > 0)) {
+                    RCLCPP_INFO(this->get_logger(), "Camera and Lidar Both see somthing");
+                    publish_control_command(custom_msg_pkg::msg::Command::STOP);
+            }
         }
 
 
@@ -142,9 +142,15 @@ class DecisionController : public rclcpp::Node {
         // it only gets updated when an acknowledgement is received from the DroneCommander telling the decision_node
         // that the drone has successfully completed the command. ie the last completed command is the current state.
         void command_ack_callback(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
+            RCLCPP_INFO(this->get_logger(), "Callback triggered: command=%d, result=%d, height_reached=%d",
+            msg->command, msg->result, msg->height_reached);
+
             if(msg->height_reached){
-                reached_analysis_height = true;
+                reached_analysis_height.store(true, std::memory_order_release);
                 RCLCPP_INFO(this->get_logger(), "decision analysis height is good");
+            }
+            else {
+                RCLCPP_INFO(this->get_logger(), "decision analysis height is BAD");
             }
 
             if(msg->result == 0) {
