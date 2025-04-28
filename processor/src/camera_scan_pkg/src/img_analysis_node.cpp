@@ -94,7 +94,7 @@ class ImageAnalysis : public rclcpp::Node {
         cv_bridge::CvImagePtr cv_ptr;
 
         try {
-            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
         } catch (cv_bridge::Exception& e) {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
@@ -108,10 +108,10 @@ class ImageAnalysis : public rclcpp::Node {
         // Initialize filters once (ones that are dependent on gpu_frame existing)
         if (!gpu_frame.empty() && !gaussFilter) {
             // Create Gaussian filter for threshold
-            gaussFilter = cv::cuda::createGaussianFilter(gpu_frame.type(), gpu_frame.type(), cv::Size(31,31), 15);
+            gaussFilter = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, cv::Size(31,31), 15);
              // No instantiation for structuring element gpu kernel exists, must be uploaded
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
-            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), kernel);
+            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, CV_8UC1, kernel);
         }
 
         if(!gpu_frame.empty()) {
@@ -124,7 +124,7 @@ class ImageAnalysis : public rclcpp::Node {
             sensor_msgs::msg::Image::SharedPtr image_msg;
             cv_bridge::CvImage cv_image;
             cv_image.image = origFrame; // frame or origFrame
-            cv_image.encoding = "mono8";
+            cv_image.encoding = "bgr8";
             image_msg = cv_image.toImageMsg();
             image_msg->header.stamp = this->now();
             image_publisher_->publish(*image_msg);
@@ -336,7 +336,7 @@ class ImageAnalysis : public rclcpp::Node {
                 cv::line(origFrame, 
                     cv::Point(obstacle.corners[i].x, obstacle.corners[i].y), 
                     cv::Point(obstacle.corners[(i + 1) % 4].x, obstacle.corners[(i + 1) % 4].y), 
-                    cv::Scalar(0, 255, 0), // color
+                    cv::Scalar(255, 0, 0), // color
                     2); // thickness
             }
         }
@@ -375,7 +375,7 @@ class ImageAnalysis : public rclcpp::Node {
         camera_scan_pkg::msg::ObstacleArray msg;
         msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
-        //grayscale(); //TBD
+        grayscale(); //TBD
         threshold();
         dilation();
         edgeDetection();
