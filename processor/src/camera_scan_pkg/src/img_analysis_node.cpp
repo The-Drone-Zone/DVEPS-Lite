@@ -193,30 +193,40 @@ class ImageAnalysis : public rclcpp::Node {
             cv::RotatedRect rect = cv::minAreaRect(cnt);
 
             // Check if bounding box is large enough and within collision bounds
-            if (rect.size.width * rect.size.height > 250 &&
-                (rect.center.x >= COLLISION_X && rect.center.x <= COLLISION_X2) &&
-                (rect.center.y >= COLLISION_Y && rect.center.y <= COLLISION_Y2)) {
-                // Declare Obstacle variables
-                camera_scan_pkg::msg::Obstacle obstacle;
-
-                // Initialize obstacle variables
-                obstacle.x = rect.center.x;
-                obstacle.y = rect.center.y;
-                obstacle.width = rect.size.width;
-                obstacle.height = rect.size.height;
-                obstacle.angle = rect.angle;
-                obstacle.distance = -1.0;
-
+            if (rect.size.width * rect.size.height > 250) {
                 // Get corner points of the bounding box
                 cv::Point2f points[4];
                 rect.points(points);
-
+                
+                // Check if any of obstacle is within collision boundary
+                bool within_collision = false;
                 for (int i = 0; i < 4; ++i) {
-                    obstacle.corners[i].x = points[i].x;
-                    obstacle.corners[i].y = points[i].y;
-                    obstacle.corners[i].z = 0.0;
+                    if (points[i].x >= COLLISION_X && points[i].x <= COLLISION_X2 &&
+                        points[i].y >= COLLISION_Y && points[i].y <= COLLISION_Y2) {
+                        within_collision = true;
+                        break;
+                    }
                 }
-                msg.obstacles.push_back(obstacle);
+
+                if (within_collision) {
+                    // Declare Obstacle variables
+                    camera_scan_pkg::msg::Obstacle obstacle;
+
+                    // Initialize obstacle variables
+                    obstacle.x = rect.center.x;
+                    obstacle.y = rect.center.y;
+                    obstacle.width = rect.size.width;
+                    obstacle.height = rect.size.height;
+                    obstacle.angle = rect.angle;
+                    obstacle.distance = -1.0;
+
+                    for (int i = 0; i < 4; ++i) {
+                        obstacle.corners[i].x = points[i].x;
+                        obstacle.corners[i].y = points[i].y;
+                        obstacle.corners[i].z = 0.0;
+                    }
+                    msg.obstacles.push_back(obstacle);
+                }
             }
 
         }
@@ -300,6 +310,7 @@ class ImageAnalysis : public rclcpp::Node {
                         obstacle.trackCount++;
                         if (obstacle.trackCount >= MAX_TRACKED) {
                             msg.tracked_obstacle = true;
+                            RCLCPP_INFO(this->get_logger(), "Tracked Obstacle across 5 frames. STOP");
                             return true; // Remove obstacle from tracking
                         }
 
@@ -336,6 +347,28 @@ class ImageAnalysis : public rclcpp::Node {
                 cv::circle(origFrame, point, 3, cv::Scalar(0, 0, 255), -1); // Filled circle
             }
         }
+
+        // Draw collision box
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y), 
+            cv::Point(COLLISION_X2, COLLISION_Y), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y), 
+            cv::Point(COLLISION_X, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X2, COLLISION_Y), 
+            cv::Point(COLLISION_X2, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y2), 
+            cv::Point(COLLISION_X2, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
     }
 
     camera_scan_pkg::msg::ObstacleArray processFrame() {
