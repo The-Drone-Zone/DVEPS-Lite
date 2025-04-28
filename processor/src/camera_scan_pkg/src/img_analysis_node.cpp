@@ -375,7 +375,7 @@ class ImageAnalysis : public rclcpp::Node {
         camera_scan_pkg::msg::ObstacleArray msg;
         msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
-        grayscale(); //TBD
+        grayscale();
         threshold();
         dilation();
         edgeDetection();
