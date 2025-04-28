@@ -18,6 +18,11 @@
 #include "camera_scan_pkg/msg/obstacle.hpp"
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
 
+#define COLLISION_X 930
+#define COLLISION_X2 1037
+#define COLLISION_Y 949
+#define COLLISION_Y2 1009
+
 class ImageAnalysis : public rclcpp::Node {
    public:
     class TrackedObstacle {
@@ -89,7 +94,7 @@ class ImageAnalysis : public rclcpp::Node {
         cv_bridge::CvImagePtr cv_ptr;
 
         try {
-            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
         } catch (cv_bridge::Exception& e) {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
@@ -103,10 +108,10 @@ class ImageAnalysis : public rclcpp::Node {
         // Initialize filters once (ones that are dependent on gpu_frame existing)
         if (!gpu_frame.empty() && !gaussFilter) {
             // Create Gaussian filter for threshold
-            gaussFilter = cv::cuda::createGaussianFilter(gpu_frame.type(), gpu_frame.type(), cv::Size(31,31), 15);
+            gaussFilter = cv::cuda::createGaussianFilter(CV_8UC1, CV_8UC1, cv::Size(31,31), 15);
              // No instantiation for structuring element gpu kernel exists, must be uploaded
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
-            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_frame.type(), kernel);
+            morphFilter = cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, CV_8UC1, kernel);
         }
 
         if(!gpu_frame.empty()) {
@@ -119,7 +124,7 @@ class ImageAnalysis : public rclcpp::Node {
             sensor_msgs::msg::Image::SharedPtr image_msg;
             cv_bridge::CvImage cv_image;
             cv_image.image = origFrame; // frame or origFrame
-            cv_image.encoding = "mono8";
+            cv_image.encoding = "bgr8";
             image_msg = cv_image.toImageMsg();
             image_msg->header.stamp = this->now();
             image_publisher_->publish(*image_msg);
@@ -187,29 +192,41 @@ class ImageAnalysis : public rclcpp::Node {
             // get min area rectangle
             cv::RotatedRect rect = cv::minAreaRect(cnt);
 
-            // Check if bounding box is large enough
+            // Check if bounding box is large enough and within collision bounds
             if (rect.size.width * rect.size.height > 250) {
-                // Declare Obstacle variables
-                camera_scan_pkg::msg::Obstacle obstacle;
-
-                // Initialize obstacle variables
-                obstacle.x = rect.center.x;
-                obstacle.y = rect.center.y;
-                obstacle.width = rect.size.width;
-                obstacle.height = rect.size.height;
-                obstacle.angle = rect.angle;
-                obstacle.distance = -1.0;
-
                 // Get corner points of the bounding box
                 cv::Point2f points[4];
                 rect.points(points);
-
+                
+                // Check if any of obstacle is within collision boundary
+                bool within_collision = false;
                 for (int i = 0; i < 4; ++i) {
-                    obstacle.corners[i].x = points[i].x;
-                    obstacle.corners[i].y = points[i].y;
-                    obstacle.corners[i].z = 0.0;
+                    if (points[i].x >= COLLISION_X && points[i].x <= COLLISION_X2 &&
+                        points[i].y >= COLLISION_Y && points[i].y <= COLLISION_Y2) {
+                        within_collision = true;
+                        break;
+                    }
                 }
-                msg.obstacles.push_back(obstacle);
+
+                if (within_collision) {
+                    // Declare Obstacle variables
+                    camera_scan_pkg::msg::Obstacle obstacle;
+
+                    // Initialize obstacle variables
+                    obstacle.x = rect.center.x;
+                    obstacle.y = rect.center.y;
+                    obstacle.width = rect.size.width;
+                    obstacle.height = rect.size.height;
+                    obstacle.angle = rect.angle;
+                    obstacle.distance = -1.0;
+
+                    for (int i = 0; i < 4; ++i) {
+                        obstacle.corners[i].x = points[i].x;
+                        obstacle.corners[i].y = points[i].y;
+                        obstacle.corners[i].z = 0.0;
+                    }
+                    msg.obstacles.push_back(obstacle);
+                }
             }
 
         }
@@ -262,19 +279,28 @@ class ImageAnalysis : public rclcpp::Node {
 
                         // Preallocate memory for downloads
                         size_t keypoints_size = obstacle.keypoints.size();
-                        std::vector<cv::Point2f> nextPts;
-                        nextPts.reserve(keypoints_size);
-                        std::vector<unsigned char> status;
-                        status.reserve(keypoints_size);
+                        std::vector<cv::Point2f> nextPts(keypoints_size); 
+                        std::vector<unsigned char> status(keypoints_size);
 
-                        gpu_nextPts.download(cv::Mat(1, keypoints_size, CV_32FC2, nextPts.data()));
-                        gpu_status.download(cv::Mat(1, keypoints_size, CV_8U, status.data()));
+                        gpu_nextPts.download(nextPts); 
+                        gpu_status.download(status);
 
                         // Filter matched keypoints in place
                         size_t i = 0;
                         obstacle.keypoints.erase(
                             std::remove_if(obstacle.keypoints.begin(), obstacle.keypoints.end(),
-                                [&](const cv::Point2f& pt) { return status[i++] == 0; }),
+                                [&](cv::Point2f& pt) {
+                                    // Check for valid matched points and if they're within collision boundary
+                                    if ((status[i] == 1) &&
+                                        (nextPts[i].x >= COLLISION_X && nextPts[i].x <= COLLISION_X2) &&
+                                        (nextPts[i].y >= COLLISION_Y && nextPts[i].y <= COLLISION_Y2)) {
+                                        pt = nextPts[i]; // Updates point
+                                        ++i;
+                                        return false;
+                                    }
+                                    ++i;
+                                    return true;
+                                }),
                             obstacle.keypoints.end());
 
                         // If no keypoints remain, remove this obstacle
@@ -284,6 +310,7 @@ class ImageAnalysis : public rclcpp::Node {
                         obstacle.trackCount++;
                         if (obstacle.trackCount >= MAX_TRACKED) {
                             msg.tracked_obstacle = true;
+                            RCLCPP_INFO(this->get_logger(), "Tracked Obstacle across 5 frames. STOP");
                             return true; // Remove obstacle from tracking
                         }
 
@@ -309,7 +336,7 @@ class ImageAnalysis : public rclcpp::Node {
                 cv::line(origFrame, 
                     cv::Point(obstacle.corners[i].x, obstacle.corners[i].y), 
                     cv::Point(obstacle.corners[(i + 1) % 4].x, obstacle.corners[(i + 1) % 4].y), 
-                    cv::Scalar(0, 255, 0), // color
+                    cv::Scalar(255, 0, 0), // color
                     2); // thickness
             }
         }
@@ -320,13 +347,35 @@ class ImageAnalysis : public rclcpp::Node {
                 cv::circle(origFrame, point, 3, cv::Scalar(0, 0, 255), -1); // Filled circle
             }
         }
+
+        // Draw collision box
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y), 
+            cv::Point(COLLISION_X2, COLLISION_Y), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y), 
+            cv::Point(COLLISION_X, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X2, COLLISION_Y), 
+            cv::Point(COLLISION_X2, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
+        cv::line(origFrame, 
+            cv::Point(COLLISION_X, COLLISION_Y2), 
+            cv::Point(COLLISION_X2, COLLISION_Y2), 
+            cv::Scalar(0, 255, 0), // color
+            2);
     }
 
     camera_scan_pkg::msg::ObstacleArray processFrame() {
         camera_scan_pkg::msg::ObstacleArray msg;
         msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
-        //grayscale(); //TBD
+        grayscale();
         threshold();
         dilation();
         edgeDetection();

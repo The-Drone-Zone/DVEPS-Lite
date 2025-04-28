@@ -88,9 +88,6 @@ class CommandScreen:
         # Stores if a plot is currently being drawn
         self.drawing_lidar_plot = False
 
-        # self.lidar_counter = 0 # For LiDAR Simulating ONLY
-        # self.update_lidar_plot() # For LiDAR Simulating ONLY
-
         ###############################################################################
         ###############################################################################
         # These variables are for the Command Frame
@@ -410,31 +407,6 @@ class CommandScreen:
                 self.diagonal2[2] = distances * np.sin(np.radians(angles2))
                 self.diagonal2[3] = distances * np.cos(np.radians(angles2))
 
-            # Simulate incoming LiDAR data (Replace this with real data)
-            # angles = np.linspace(-4, 4, 50) 
-            # angles2 = np.linspace(0, 360, 50)
-            # distances = np.random.uniform(20, 30, size=50)  # Random distances for simulation
-
-            # ## Convert polar to cartesian coordinates (FOR SIMULATION ONLY)
-            # # Horizontal line
-            # if self.lidar_counter % 3 == 0:
-            #     self.horizontal[0] = distances * np.sin(np.radians(angles))
-            #     self.horizontal[1] = distances * np.cos(np.radians(angles))
-            #     self.horizontal[2] = distances * np.sin(np.radians(angles2))
-            #     self.horizontal[3] = distances * np.cos(np.radians(angles2))
-            # # Bottom left to top right diagonal (diagonal1)
-            # elif self.lidar_counter % 3 == 1:
-            #     self.diagonal1[0] = distances * np.sin(np.radians(angles))
-            #     self.diagonal1[1] = distances * np.cos(np.radians(angles))
-            #     self.diagonal1[2] = distances * np.sin(np.radians(angles2))
-            #     self.diagonal1[3] = distances * np.cos(np.radians(angles2))
-            # # Top left to bottom right diagonal (diagonal2)
-            # elif self.lidar_counter % 3 == 2:
-            #     self.diagonal2[0] = distances * np.sin(np.radians(angles))
-            #     self.diagonal2[1] = distances * np.cos(np.radians(angles))
-            #     self.diagonal2[2] = distances * np.sin(np.radians(angles2))
-            #     self.diagonal2[3] = distances * np.cos(np.radians(angles2))
-
             # Check if another thread is currently drawing and if this is the end of the scan (3rd message/diagonal2)
             if not self.drawing_lidar_plot and data.angle_offset == 228:
                 self.drawing_lidar_plot = True
@@ -455,10 +427,10 @@ class CommandScreen:
                 ## Set axis limits
                 # Plot 1
                 self.lidar_ax.set_xlim(-1, 1)
-                self.lidar_ax.set_ylim(0, 3)
+                self.lidar_ax.set_ylim(0, 30)
                 # Plot 2
-                self.lidar_ax2.set_xlim(-3, 3)
-                self.lidar_ax2.set_ylim(-3, 3)
+                self.lidar_ax2.set_xlim(-30, 30)
+                self.lidar_ax2.set_ylim(-30, 30)
 
                 ## Set axis labels
                 # Plot 1
@@ -486,10 +458,6 @@ class CommandScreen:
 
                 # Open plot to be redrawn
                 self.drawing_lidar_plot = False
-
-                # Schedule the next update (e.g., 100 ms)
-                # self.lidar_frame.after(5, self.update_lidar_plot) # FOR SIMULATION ONLY
-                # self.lidar_counter += 1 # FOR SIMULATION ONLY
 
         # Run the update task in a separate thread
         thread = threading.Thread(target=update, daemon=True)

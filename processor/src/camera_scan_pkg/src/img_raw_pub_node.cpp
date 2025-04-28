@@ -46,11 +46,11 @@ class ImagePublisher : public rclcpp::Node {
 
         #ifdef USE_APPSINK_ONLY
         std::string pipeline_str =
-            "nvarguscamerasrc ! nvvidconv ! video/x-raw, format=BGRx ! "
+            "nvarguscamerasrc ! nvvidconv ! videoflip method=vertical-flip ! video/x-raw, format=BGRx ! "
             "videoconvert ! video/x-raw, format=BGR ! appsink name=opencv_sink sync=false";
         #else
         std::string pipeline_str =
-            "nvarguscamerasrc ! nvvidconv ! video/x-raw, format=BGRx ! "
+            "nvarguscamerasrc ! nvvidconv ! videoflip method=vertical-flip ! video/x-raw, format=BGRx ! "
             "tee name=t "
             "t. ! queue ! videoconvert ! video/x-raw, format=BGR ! appsink name=opencv_sink sync=false "
             "t. ! queue ! nv3dsink sync=false";
