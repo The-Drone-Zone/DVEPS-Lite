@@ -28,7 +28,7 @@ def generate_launch_description():
             remappings=[
                 ('output_obstacles', '/camera_scan_pkg/output_obstacles'),
                 ('Lidar/analysis', '/custom_msg_pkg/Lidar/analysis'),
-                ('DecisionController/command_ack', 'drone_commander_pkg/command_ack')
+                ('DecisionController/command_ack', '/drone_commander_pkg/DecisionController/command_ack')
             ]
         ),
         Node(
@@ -36,7 +36,10 @@ def generate_launch_description():
             namespace='drone_commander_pkg',
             executable='drone_commander',
             name='drone_commander',
-            prefix='gnome-terminal --'
+            prefix='gnome-terminal --',
+            remappings=[
+                ('DecisionController/command', '/decision_pkg/DecisionController/command')
+            ]
         ),
         Node(
             package='lidar_scan_pkg',
