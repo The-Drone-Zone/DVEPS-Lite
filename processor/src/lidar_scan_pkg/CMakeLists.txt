@@ -29,17 +29,9 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../mavlink
 )
 
-add_executable(lidar_node	src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
+add_executable(lidar_pub_node	src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
 # target_link_libraries(rplidar_node ${ament_cmake_LIBRARIES})
-ament_target_dependencies(lidar_node
-  rclcpp
-  std_srvs
-  sensor_msgs
-  custom_msg_pkg
-)
-
-add_executable(lidar_composition src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
-ament_target_dependencies(lidar_composition
+ament_target_dependencies(lidar_pub_node
   rclcpp
   std_srvs
   sensor_msgs
@@ -62,7 +54,7 @@ ament_target_dependencies(obstacle_distance_node
 )
 
 install(
-  TARGETS lidar_node lidar_composition lidar_analysis_node obstacle_distance_node
+  TARGETS lidar_pub_node  lidar_analysis_node obstacle_distance_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 

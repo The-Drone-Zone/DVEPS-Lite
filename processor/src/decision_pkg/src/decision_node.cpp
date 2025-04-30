@@ -99,8 +99,6 @@ class DecisionController : public rclcpp::Node {
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
-            RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
-
             // Image to LiDAR map function call goes here
             if(msg->stop) {
                 RCLCPP_INFO(this->get_logger(), "STOPPING");
