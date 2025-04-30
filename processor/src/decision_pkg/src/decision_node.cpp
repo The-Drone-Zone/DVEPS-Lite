@@ -21,6 +21,11 @@ enum STATES {
     FORWARD
 };
 
+struct Mapping {
+    camera_scan_pkg::msg::ObstacleArray mapped_image_obstacles;
+    custom_msg_pkg::msg::LidarPosition mapped_lidar_samples;
+};
+
 class DecisionController : public rclcpp::Node {
     public:
         long int time_sum = 0;
@@ -38,6 +43,7 @@ class DecisionController : public rclcpp::Node {
             command_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
             command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
 
+            RCLCPP_INFO(this->get_logger(), "STARTING DECISION");
             find_path_thread = std::thread(&DecisionController::find_path, this);
             decision_mode.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
             current_state.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
@@ -63,26 +69,26 @@ class DecisionController : public rclcpp::Node {
 
         camera_scan_pkg::msg::ObstacleArray image_obstacles;
         custom_msg_pkg::msg::LidarPosition lidar_samples;
+        Mapping mapping;
+        std::atomic<bool> reached_analysis_height = false;
         int turn_count = 0;
 
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
+            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
             //printImageObstacles(msg);
-            image_obstacles = *msg;
+            mapping.mapped_image_obstacles = *msg;
 
-            if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
+            if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
             }
-            
-
-            // Image to LiDAR map function call goes here
 
             // End time
             auto end = std::chrono::high_resolution_clock::now();
@@ -96,20 +102,20 @@ class DecisionController : public rclcpp::Node {
         }
 
         void lidarCallback(const custom_msg_pkg::msg::LidarPosition::SharedPtr msg) {
+            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
 
+            mapping.mapped_lidar_samples = *msg;
+
             // Image to LiDAR map function call goes here
-            if(msg->stop) {
+            if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOPPING");
-                //my drone command PR needs to pushed to dev before I pull in changes here.
+                publish_control_command(custom_msg_pkg::msg::Command::STOP);
+                outstanding_ack.store(true, std::memory_order_release);
             }
-
-            //PROCESS XYZ COORDINATE MAPPING HERE MAYBE
-
-            //NEED TO HAVE THE DRONE COMMAND PUSHED IN ORDER TO USE the current location functionality.
 
             // End time
             auto end = std::chrono::high_resolution_clock::now();
@@ -122,11 +128,32 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
+        bool check_stop() {
+           if ((mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
+               || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
+                RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
+                return true;
+           }
+
+           return false;
+        }
+
 
         // The variable current_state is used to keep track of the current state of the drone.
         // it only gets updated when an acknowledgement is received from the DroneCommander telling the decision_node
         // that the drone has successfully completed the command. ie the last completed command is the current state.
         void command_ack_callback(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
+            RCLCPP_INFO(this->get_logger(), "Callback triggered: command=%d, result=%d, height_reached=%d",
+            msg->command, msg->result, msg->height_reached);
+
+            if(msg->height_reached){
+                reached_analysis_height.store(true, std::memory_order_release);
+                RCLCPP_INFO(this->get_logger(), "decision analysis height is good");
+            }
+            else {
+                RCLCPP_INFO(this->get_logger(), "decision analysis height is BAD");
+            }
+
             if(msg->result == 0) {
                 switch(msg->command) {
                     case custom_msg_pkg::msg::Command::STOP:
@@ -179,7 +206,7 @@ class DecisionController : public rclcpp::Node {
                 else if (current_state.load(std::memory_order_acquire) == STATES::REROUTING && outstanding_ack.load(std::memory_order_acquire) == false) {
                     //chill for a bit
                     RCLCPP_INFO(this->get_logger(), "Rerouting");
-                    if(image_obstacles.tracked_obstacle) {
+                    if(check_stop()) {
                         turn_count++;
                         RCLCPP_INFO(this->get_logger(), "TURN COUNT, %d ", turn_count);
 
