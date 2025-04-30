@@ -129,7 +129,7 @@ class DecisionController : public rclcpp::Node {
         }
 
         bool check_stop() {
-           if ((mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
+           if ((mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
                || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
                 RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
                 return true;
