@@ -112,8 +112,8 @@ class SLLidarClient : public rclcpp::Node {
             if (collision_time < 4.0) { //4.0 because we are going at 5/ms and 4*5 = 20 meters
                 msg.stop = true; //Here I am using multiple beams to signal a stop not just 1 beam
             }
-        }
-
+        } 
+        
 
         // if (scan_history_.size() < 2) return;
 
