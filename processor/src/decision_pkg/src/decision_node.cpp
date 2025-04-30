@@ -82,10 +82,9 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
             //printImageObstacles(msg);
-            image_obstacles = *msg;
             mapping.mapped_image_obstacles = *msg;
 
-            if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
+            if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
@@ -107,11 +106,16 @@ class DecisionController : public rclcpp::Node {
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
+<<<<<<< HEAD
             lidar_samples = *msg;
+=======
+            RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
+
+>>>>>>> lidar_avoidance
             mapping.mapped_lidar_samples = *msg;
 
             // Image to LiDAR map function call goes here
-            if(msg->stop && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
+            if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "STOPPING");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release);
@@ -128,6 +132,7 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
+<<<<<<< HEAD
         void check_mapping() {
             if(!reached_analysis_height.load(std::memory_order_acquire)) return;
 
@@ -135,6 +140,16 @@ class DecisionController : public rclcpp::Node {
                     RCLCPP_INFO(this->get_logger(), "Camera and Lidar Both see somthing");
                     publish_control_command(custom_msg_pkg::msg::Command::STOP);
             }
+=======
+        bool check_stop() {
+           if ((mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
+               || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
+                RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
+                return true;
+           }
+
+           return false;
+>>>>>>> lidar_avoidance
         }
 
 
@@ -205,7 +220,7 @@ class DecisionController : public rclcpp::Node {
                 else if (current_state.load(std::memory_order_acquire) == STATES::REROUTING && outstanding_ack.load(std::memory_order_acquire) == false) {
                     //chill for a bit
                     RCLCPP_INFO(this->get_logger(), "Rerouting");
-                    if(image_obstacles.tracked_obstacle) {
+                    if(check_stop()) {
                         turn_count++;
                         RCLCPP_INFO(this->get_logger(), "TURN COUNT, %d ", turn_count);
 
