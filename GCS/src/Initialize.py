@@ -2,6 +2,8 @@ import os
 import sys
 import tkinter as tk
 from tkinter import ttk
+import cv2
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -15,6 +17,7 @@ from Utils.Globals import Globals
 class Initialize:
     def __init__(self):
         self.root = tk.Tk()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.notebook = ttk.Notebook(self.root)
 
         self.globals = Globals()
@@ -47,3 +50,10 @@ class Initialize:
         tab_id = notebook.select()
         tab_text = notebook.tab(tab_id, "text")
         self.logs_tab.addUserLog(f"User switched to the {tab_text} tab")
+
+    def on_close(self):
+        plt.close()
+        self.root.quit()
+        self.root.destroy()
+        self.command_tab.cap.release()
+        cv2.destroyAllWindows()

@@ -5,3 +5,7 @@ tkintermapview
 pyyaml
 mavsdk
 asyncio
+pymavlink
+numpy
+matplotlib
+pyserial
