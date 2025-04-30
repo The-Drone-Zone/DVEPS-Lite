@@ -15,7 +15,7 @@ find_package(geometry_msgs REQUIRED)
 include_directories(include)
 
 
-add_executable(drone_commander src/DroneCommander.cpp src/PosFunctions.cpp)
+add_executable(drone_commander src/DroneCommander.cpp src/PosFunctions.cpp src/AcutatorControl.cpp)
 target_include_directories(drone_commander PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
