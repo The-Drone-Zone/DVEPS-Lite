@@ -63,14 +63,24 @@ class CommandScreen:
         self.lidar_plot2_frame: tk.Frame = None
         self.map_frame: tk.Frame = None
         self.commands_frame: tk.Frame = None
-        self.cap = cv2.VideoCapture(1)
+        self.cap = None
+        if os.name == "nt":  # Windows
+            self.cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        elif os.name == "posix":  # Linux/macOS
+            self.cap = cv2.VideoCapture(1, cv2.CAP_V4L2)
+        self.video_stop_event = threading.Event()
         self.create_frames()
 
         ### Video Frame Setup
+        self.current_video_frame = None
         self.video_frame_width = self.video_frame.winfo_width()
         self.video_frame_height = self.video_frame.winfo_height()
         self.create_video_display()
-        self.update_video()
+        # For getting new live video concurrently
+        self.video_thread = threading.Thread(target=self.video_loop, daemon=True)
+        self.video_thread.start()
+        # For updating GUI
+        self.update_video_display()
 
         ### LiDAR Frame Setup
         # Variables for storing x,y positions. format = [x1, y1, x2, y2]
@@ -350,23 +360,25 @@ class CommandScreen:
         self.video_label.grid(row=1, column=0, sticky="nsew")
 
 
-    def update_video(self):
-        ret, frame = self.cap.read()
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    def video_loop(self):
+        while not self.video_stop_event.is_set():
+            ret, frame = self.cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            frame_width = self.video_frame.winfo_width()
-            frame_height = self.video_frame.winfo_height()
-            # print(frame_width, frame_height)
-            frame = cv2.resize(frame, (frame_width, frame_height))
+                frame_width = self.video_frame.winfo_width()
+                frame_height = self.video_frame.winfo_height()
+                # print(frame_width, frame_height)
+                frame = cv2.resize(frame, (frame_width, frame_height))
 
-            img = Image.fromarray(frame)
-            imgtk = ImageTk.PhotoImage(image=img)
+                img = Image.fromarray(frame)
+                self.current_video_frame = ImageTk.PhotoImage(image=img)
 
-            self.video_label.imgtk = imgtk
-            self.video_label.config(image=imgtk)
-
-        self.video_label.after(10, self.update_video) #run every 10ms
+    def update_video_display(self):
+        if self.current_video_frame:
+            self.video_label.imgtk = self.current_video_frame
+            self.video_label.config(image=self.current_video_frame)
+        self.video_label.after(30, self.update_video_display)  # Run every ~30ms (~33fps)
 
     # data is of type OBSTACLE_DISTANCE from px4_msgs
     def update_lidar_plot(self, data=None):
