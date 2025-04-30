@@ -128,15 +128,6 @@ class DecisionController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
-<<<<<<< HEAD
-        void check_mapping() {
-            if(!reached_analysis_height.load(std::memory_order_acquire)) return;
-
-            if (mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 100 && mapping.mapped_lidar_samples.least_range > 0)) {
-                    RCLCPP_INFO(this->get_logger(), "Camera and Lidar Both see somthing");
-                    publish_control_command(custom_msg_pkg::msg::Command::STOP);
-            }
-=======
         bool check_stop() {
            if ((mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
                || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
@@ -145,7 +136,6 @@ class DecisionController : public rclcpp::Node {
            }
 
            return false;
->>>>>>> lidar_avoidance
         }
 
 
