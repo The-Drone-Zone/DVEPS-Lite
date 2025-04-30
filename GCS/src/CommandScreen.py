@@ -67,7 +67,7 @@ class CommandScreen:
         if os.name == "nt":  # Windows
             self.cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         elif os.name == "posix":  # Linux/macOS
-            self.cap = cv2.VideoCapture(1, cv2.CAP_V4L2)
+            self.cap = cv2.VideoCapture(2, cv2.CAP_V4L2)
         self.video_stop_event = threading.Event()
         self.create_frames()
 
