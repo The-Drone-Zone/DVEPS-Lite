@@ -6,3 +6,6 @@ int32 FORWARD = 4
 
 int8 result # see VehicleCommandAck for imformation about different values
 int32 command
+
+
+bool height_reached

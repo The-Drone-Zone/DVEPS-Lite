@@ -78,6 +78,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         bool resume_flag_ = false;
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
+        bool keep_checking_height = true;
         int last_command_recieved = -1;
         double degree_ = 0.0;
         std::array<float, 3> current_pos = {};
@@ -117,7 +118,17 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             }
         }
 
-        void commanderCallback() {
+        void commanderCallback() {    
+            
+            if(position_control_->checkAnalysisHeight() && keep_checking_height){
+                custom_msg_pkg::msg::CommandAck msg_ack;
+                msg_ack.command = 0;
+                msg_ack.result = 0;
+                msg_ack.height_reached = true;
+                command_ack_publisher_->publish(msg_ack);
+                RCLCPP_INFO(this->get_logger(), "HEIGHT IS GOOD");
+                keep_checking_height = false;
+            }
 
             if(stop_flag_){
                 //command do set mode, custom mode px4 (1), px4 mode auto mission(4), px4 sub mode hold(3)
