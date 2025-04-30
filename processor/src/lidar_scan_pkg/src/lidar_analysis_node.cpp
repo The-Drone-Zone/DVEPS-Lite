@@ -31,14 +31,13 @@ class SLLidarClient : public rclcpp::Node {
     }
 
    private:
-
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
     rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
     rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
 
     // std::deque<std::vector<float>> scan_history_;
-    static constexpr size_t HISTORY_SIZE = 5;
     std::vector<float> scan_history_;
+    const size_t HISTORY_SIZE = 5;
     int danger_count_ = 0;
 
 
@@ -95,7 +94,7 @@ class SLLidarClient : public rclcpp::Node {
         if (scan_history_.size() >= HISTORY_SIZE) {
             scan_history_.erase(scan_history_.begin());
         }
-        push_back_with_size(scan_history_, msg.least_range, HISTORY_SIZE);
+        push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
 
         if (scan_history_.size() < 2) return;
 
@@ -165,7 +164,7 @@ class SLLidarClient : public rclcpp::Node {
         pub->publish(msg);
     }
 
-    void push_back_with_size(std::vector<float>& vec, float value, size_t max_size) {
+    void push_back_max_size(std::vector<float>& vec, float value, size_t max_size) {
         if (vec.size() >= max_size) {
             vec.erase(vec.begin());  // Remove the oldest element
         }
@@ -180,43 +179,3 @@ int main(int argc, char **argv) {
     rclcpp::shutdown();
     return 0;
 }
-
-
-
-
-// sensor_msgs::msg::LaserScan current_scan = *scan;
-//         float sum_of_potential_x = 0.0;
-//         float sum_of_potential_y = 0.0;
-//         bool avoid = false;
-
-//         custom_msg_pkg::msg::LidarPosition msg;
-//         msg.stop = false;
-        
-//         for(int i = 0; i < count; ++i) {
-//             float d0 = 25; // ignore values under 20 meters we missed an object and our design was flawed. also a requiremtn to detect objects at 20 meters
-//             float k = 0.5; //gain / weightedness of potential field
-            
-//             //filter our object whose values are under 20 meters
-//             if(current_scan.ranges[i] < d0 && current_scan.ranges[i] > current_scan.range_min) {
-//                 msg.stop = true;
-
-//                 //MEASURED IN RADIANS
-//                 float X_radians = cos(scan->angle_min + scan->angle_increment * i);
-//                 float Y_radians = sin(scan->angle_min + scan->angle_increment * i);
-//                 float potential = -.5 * k * pow( ( (1/current_scan.ranges[i]) - (1/d0) ), 2 );
-//                 sum_of_potential_x += X_radians * potential;
-//                 sum_of_potential_y += Y_radians * potential;
-//             }
-            
-//         }
-
-//         msg.sum_of_potential_x = sum_of_potential_x;
-//         msg.sum_of_potential_y = sum_of_potential_y;
-
-//         //XYZ COORDINATE MAPPING GOES HERE
-        
-//         msg.z.assign(scan->ranges.begin(), scan->ranges.end());
-//         msg.x.resize(count, 0.0);
-//         msg.y.resize(count, 0.0);
-
-//         pub->publish(msg);

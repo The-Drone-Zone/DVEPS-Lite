@@ -38,14 +38,6 @@ ament_target_dependencies(lidar_pub_node
   custom_msg_pkg
 )
 
-# add_executable(lidar_composition src/lidar_pub_node.cpp ${RPLIDAR_SDK_SRC})
-# ament_target_dependencies(lidar_composition
-#   rclcpp
-#   std_srvs
-#   sensor_msgs
-#   custom_msg_pkg
-# )
-
 add_executable(lidar_analysis_node src/lidar_analysis_node.cpp)
 ament_target_dependencies(lidar_analysis_node
   rclcpp
@@ -64,7 +56,7 @@ ament_target_dependencies(obstacle_distance_node
 install(
   TARGETS lidar_pub_node  lidar_analysis_node obstacle_distance_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
-) #lidar_composition: PROBABLY DELETE WE ARE NOT USING THIS NODE
+)
 
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(std_msgs)
