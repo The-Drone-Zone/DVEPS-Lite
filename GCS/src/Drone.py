@@ -131,13 +131,8 @@ class Drone:
 
     async def check_drone_connection(self):
         async for state in self.drone.core.connection_state():
-<<<<<<< HEAD
-            # print(f"Connection: {state.is_connected} | connect_count: {self.connect_counter} | disconnect_count: {self.disconnect_counter}") # For DEBUGGING
-            if state.is_connected and not self.connected and self.connect_counter >= 1:
-=======
             # print(f"Connection: {state.is_connected}") # Keep for future debugging
-            if state.is_connected and not self.connected:
->>>>>>> develop
+            if state.is_connected and not self.connected and self.connect_counter >= 1:
                 self.logs.addDroneLog("-- Connected to drone!")
                 self.connected = True
                 self.disconnect_counter = 0
