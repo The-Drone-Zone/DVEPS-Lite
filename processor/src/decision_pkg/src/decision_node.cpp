@@ -24,7 +24,7 @@ enum STATES {
 struct Mapping {
     camera_scan_pkg::msg::ObstacleArray mapped_image_obstacles;
     custom_msg_pkg::msg::LidarPosition mapped_lidar_samples;
-}
+};
 
 class DecisionController : public rclcpp::Node {
     public:
@@ -102,8 +102,6 @@ class DecisionController : public rclcpp::Node {
             // Start time
             auto start = std::chrono::high_resolution_clock::now();
 
-            RCLCPP_INFO(this->get_logger(), "Received %zu analyzed LiDAR samples", msg->x.size());
-
             mapping.mapped_lidar_samples = *msg;
 
             // Image to LiDAR map function call goes here
@@ -125,7 +123,7 @@ class DecisionController : public rclcpp::Node {
         }
 
         bool check_stop() {
-           if ((mapping.mapped_image_obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
+           if ((mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20 && mapping.mapped_lidar_samples.least_range > 0))
                || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
                 RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
                 return true;

@@ -15,6 +15,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "custom_msg_pkg/msg/lidar_position.hpp"
+#include <px4_msgs/msg/obstacle_distance.hpp>
 #include <deque>
 
 #define RAD2DEG(x) ((x) * 180.0 / M_PI)
@@ -30,12 +31,14 @@ class SLLidarClient : public rclcpp::Node {
     }
 
    private:
-
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
     rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
+    rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
 
-    std::deque<std::vector<float>> scan_history_;
+    // std::deque<std::vector<float>> scan_history_;
+    std::vector<float> scan_history_;
     const size_t HISTORY_SIZE = 5;
+    int danger_count_ = 0;
 
 
     void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
@@ -77,7 +80,9 @@ class SLLidarClient : public rclcpp::Node {
         msg.least_range = 100;
 
         for(int i = 0; i < count; ++i) {
-            if( !(degree > 0 && degree < 1.0) && !( dgree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
+            float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+
+            if( !(degree > 0 && degree < 1.0) && !( degree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
                 continue;                
             }
 
@@ -87,9 +92,9 @@ class SLLidarClient : public rclcpp::Node {
         }
 
         if (scan_history_.size() >= HISTORY_SIZE) {
-            scan_history_.erase(vec.begin());
+            scan_history_.erase(scan_history_.begin());
         }
-        scan_history_.push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
+        push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
 
         if (scan_history_.size() < 2) return;
 
@@ -99,7 +104,7 @@ class SLLidarClient : public rclcpp::Node {
             total_velocity += v;
         }
         float average_velocity = total_velocity / (scan_history_.size() - 1); //minus 1 because we are looking at the intervals bewtween the ranges
-        float current_range = scan_history_.back()[0]; //most recent range data
+        float current_range = scan_history_.back(); //most recent range data
 
         if(average_velocity > 0.0) {
             float collision_time = current_range / average_velocity; //collision_time = time to collision based on the most recent rnge value and the average velocity of the object
@@ -117,7 +122,7 @@ class SLLidarClient : public rclcpp::Node {
         //     float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
 
         //     //Angles outisde the drone hitbox at 20 meters can be ignored.
-        //     if( !(degree > 0 && degree < 1.0) && !( dgree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
+        //     if( !(degree > 0 && degree < 1.0) && !( degree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
         //         continue;                
         //     }
 
@@ -159,21 +164,12 @@ class SLLidarClient : public rclcpp::Node {
         pub->publish(msg);
     }
 
-    void push_back_with_size(std::vector<float>& vec, float value, size_t max_size) {
+    void push_back_max_size(std::vector<float>& vec, float value, size_t max_size) {
         if (vec.size() >= max_size) {
             vec.erase(vec.begin());  // Remove the oldest element
         }
         vec.push_back(value);
     }
-
-    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
-    rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
-    rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
-
-    // std::deque<std::vector<float>> scan_history_;
-    std::vector<float> scan_history_[HISTORY_SIZE];
-    const size_t HISTORY_SIZE = 5;
-    int danger_count_ = 0;
 };
 
 int main(int argc, char **argv) {
