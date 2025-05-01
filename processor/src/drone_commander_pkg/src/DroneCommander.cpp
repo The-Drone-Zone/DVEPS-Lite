@@ -139,77 +139,79 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 hover_flag_ = true;
                 stop_flag_ = false;
             }
-            // else if (turn_flag_ && in_offboard_control_){
-            //     //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
-            //     RCLCPP_INFO(this->get_logger(), "\n START turn command to the vehicle.");
-            //         px4_msgs::msg::TrajectorySetpoint msg;
+#ifdef REROUTING_OPTION
+            else if (turn_flag_ && in_offboard_control_){
+                //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
+                RCLCPP_INFO(this->get_logger(), "\n START turn command to the vehicle.");
+                    px4_msgs::msg::TrajectorySetpoint msg;
+ 
+                    if(commanded_turn){
+                        msg = position_control_->turnByAngle(degree_, true);
+                    }
+                    else {
+                        msg = position_control_->turnByAngle(degree_);
+                    }
 
-            //         if(commanded_turn){
-            //             msg = position_control_->turnByAngle(degree_, true);
-            //         }
-            //         else {
-            //             msg = position_control_->turnByAngle(degree_);
-            //         }
+                    publishOffboardCtlMsg();
+                    trajectory_setpoint_publisher_->publish(msg);
+                RCLCPP_INFO(this->get_logger(), "SENT turn command to the vehicle.");
 
-            //         publishOffboardCtlMsg();
-            //         trajectory_setpoint_publisher_->publish(msg);
-            //     RCLCPP_INFO(this->get_logger(), "SENT turn command to the vehicle.");
+                if(commanded_turn){
+                    custom_msg_pkg::msg::CommandAck msg_ack;
+                    msg_ack.command = 2;
+                    msg_ack.result = 0;
+                    command_ack_publisher_->publish(msg_ack);
+                    commanded_turn = false;
+                }
 
-            //     if(commanded_turn){
-            //         custom_msg_pkg::msg::CommandAck msg_ack;
-            //         msg_ack.command = 2;
-            //         msg_ack.result = 0;
-            //         command_ack_publisher_->publish(msg_ack);
-            //         commanded_turn = false;
-            //     }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
+            }
+            else if (forward_flag_){
 
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(500)); //DO NOT DELETE
-            // }
-            // else if (forward_flag_){
+                if(first_forward){
+                    current_pos = position_control_->getLocalPosition();
+                    position_X_copy = current_pos[0];
+                    current_pos[0] += 5.0;
+                }
 
-            //     if(first_forward){
-            //         current_pos = position_control_->getLocalPosition();
-            //         position_X_copy = current_pos[0];
-            //         current_pos[0] += 5.0;
-            //     }
+                publishOffboardCtlMsg();
+                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(current_pos[0]));
 
-            //     publishOffboardCtlMsg();
-            //     trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(current_pos[0]));
+                if(first_forward){
+                    custom_msg_pkg::msg::CommandAck msg_ack;
+                    msg_ack.command = 3;
+                    msg_ack.result = 0;
+                    command_ack_publisher_->publish(msg_ack);
+                    first_forward = false;
+                }
 
-            //     if(first_forward){
-            //         custom_msg_pkg::msg::CommandAck msg_ack;
-            //         msg_ack.command = 3;
-            //         msg_ack.result = 0;
-            //         command_ack_publisher_->publish(msg_ack);
-            //         first_forward = false;
-            //     }
+                if(position_control_->checkDist(position_X_copy))
+                {
+                    forward_flag_ = false;
+                    resume_flag_ = true;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
 
-            //     if(position_control_->checkDist(position_X_copy))
-            //     {
-            //         forward_flag_ = false;
-            //         resume_flag_ = true;
-            //     }
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
+                // for(int i = 0; i < 5; ++i){
+                //     publishOffboardCtlMsg();
+                //     trajectory_setpoint_publisher_->publish(position_control_->moveForward());
 
-            //     // for(int i = 0; i < 5; ++i){
-            //     //     publishOffboardCtlMsg();
-            //     //     trajectory_setpoint_publisher_->publish(position_control_->moveForward());
+                //     custom_msg_pkg::msg::CommandAck msg_ack;
+                //     msg_ack.command = 3;
+                //     msg_ack.result = 0;
+                //     command_ack_publisher_->publish(msg_ack);
+                //     std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
+                // }
 
-            //     //     custom_msg_pkg::msg::CommandAck msg_ack;
-            //     //     msg_ack.command = 3;
-            //     //     msg_ack.result = 0;
-            //     //     command_ack_publisher_->publish(msg_ack);
-            //     //     std::this_thread::sleep_for(std::chrono::milliseconds(450)); //Under 2hz to stay in offboard mode
-            //     // }
-
-            //     //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
-            // }
-            // else if (resume_flag_){
-            //     uart_->sendDistance(1000); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
-            //     RCLCPP_INFO(this->get_logger(), "Sent resume command to the vehicle.");
-            //     publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
-            //     resume_flag_ = false;
-            // }
+                //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
+            }
+            else if (resume_flag_){
+                uart_->sendDistance(1000); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
+                RCLCPP_INFO(this->get_logger(), "Sent resume command to the vehicle.");
+                publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
+                resume_flag_ = false;
+            }
+#endif
         }
 
 

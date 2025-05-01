@@ -5,6 +5,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+option(REROUTING_OPTION "Add rerouting functoinality to the build" OFF)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(px4_msgs REQUIRED)
@@ -16,6 +18,11 @@ include_directories(include)
 
 
 add_executable(drone_commander src/DroneCommander.cpp src/PosFunctions.cpp src/ActuatorControl.cpp)
+
+if(REROUTING_OPTION)
+  target_compile_definitions(drone_commander PRIVATE REROUTING_OPTION)
+endif()
+
 target_include_directories(drone_commander PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
