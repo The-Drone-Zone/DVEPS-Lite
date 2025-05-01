@@ -118,29 +118,36 @@ px4_msgs::msg::TrajectorySetpoint PositionControl::turnByAngle(float angle_degre
     return trajectory_setpoint_msg;
 }
 
-px4_msgs::msg::TrajectorySetpoint PositionControl::moveForwardByMeters(float dist){
+px4_msgs::msg::TrajectorySetpoint PositionControl::moveForwardByMeters(float distance_meters){
 
     std::array<float, 3> current_pos = getLocalPosition();
+    float heading = getCurrentHeading();  // This is in radians
+
+    float dx = distance_meters * std::cos(heading);
+    float dy = distance_meters * std::sin(heading);
 
     auto trajectory_setpoint_msg = TrajectorySetpoint();
-    trajectory_setpoint_msg.position[0] = dist;  // Move forward 5 meters
-    trajectory_setpoint_msg.position[1] = current_pos[1];
+
+    trajectory_setpoint_msg.position[0] = current_pos[0] + dx;
+    trajectory_setpoint_msg.position[1] = current_pos[1] + dy;
     trajectory_setpoint_msg.position[2] = current_pos[2];
-    trajectory_setpoint_msg.yaw = getCurrentHeading();
-    RCLCPP_INFO(commander_->get_logger(), "POS 0: %f::: CURRENT POS: %f", trajectory_setpoint_msg.position[0], current_pos[0]);
+    trajectory_setpoint_msg.yaw = heading;
+    trajectory_setpoint_msg.yawspeed = 0.0; //maybe dont need this try deleting it if it does not work at first
+
+    RCLCPP_INFO(commander_->get_logger(), "Move Forward: target x: %f, y: %f, current heading: %f deg",
+                trajectory_setpoint_msg.position[0], trajectory_setpoint_msg.position[1], heading * (180.0 / M_PI));
 
     return trajectory_setpoint_msg;
 }
 
-bool PositionControl::checkDist(float start_dist){
-    std::array<float, 3> current_pos = getLocalPosition();
+bool PositionControl::checkDist(std::array<float, 2> start_pos){
 
-    if(fabs(start_dist - current_pos[0]) > 4.5){
-        return true;
-    }
-    else {
-        return false;
-    }
+    std::array<float, 3> current_pos = getLocalPosition();
+    float dx = current_pos[0] - start_pos[0];
+    float dy = current_pos[1] - start_pos[1];
+
+    float dist = std::sqrt(dx * dx + dy * dy);
+    return dist > 4.5;
 }
 
 float PositionControl::getCurrentHeading()

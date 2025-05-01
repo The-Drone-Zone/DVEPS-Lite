@@ -82,6 +82,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         int last_command_recieved = -1;
         double degree_ = 0.0;
         std::array<float, 3> current_pos = {};
+        std::array<float, 2> start_position = {};
         float position_X_copy = 0.0;
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
@@ -170,12 +171,11 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
 
                 if(first_forward){
                     current_pos = position_control_->getLocalPosition();
-                    position_X_copy = current_pos[0];
-                    current_pos[0] += 5.0;
+                    start_position = { current_pos[0], current_pos[1] };
                 }
 
                 publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(current_pos[0]));
+                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(5));
 
                 if(first_forward){
                     custom_msg_pkg::msg::CommandAck msg_ack;
@@ -185,7 +185,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     first_forward = false;
                 }
 
-                if(position_control_->checkDist(position_X_copy))
+                if(position_control_->checkDist(start_position))
                 {
                     forward_flag_ = false;
                     resume_flag_ = true;
