@@ -124,7 +124,8 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         }
 
         void commanderCallback() {    
-            
+            static TrajectorySetpoint forward_setpoint;
+
             if(position_control_->checkAnalysisHeight() && keep_checking_height){
                 custom_msg_pkg::msg::CommandAck msg_ack;
                 msg_ack.command = 0;
@@ -176,10 +177,12 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 if(first_forward){
                     current_pos = position_control_->getLocalPosition();
                     start_position = { current_pos[0], current_pos[1] };
+
+                    forward_setpoint = position_control_->moveForwardByMeters(5);
                 }
 
                 publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(5));
+                trajectory_setpoint_publisher_->publish(forward_setpoint);
 
                 if(first_forward){
                     custom_msg_pkg::msg::CommandAck msg_ack;
