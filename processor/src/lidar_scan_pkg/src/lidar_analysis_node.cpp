@@ -82,7 +82,7 @@ class SLLidarClient : public rclcpp::Node {
         for(int i = 0; i < count; ++i) {
             float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
 
-            if( !(degree > 0 && degree < 1.0) && !( degree > 121.0 && degree < 124.0 ) && !( degree > 230.0  && degree < 233.0 ) && !(degree > 358.9 && degree < 359.99) ){
+            if( !(degree > 179 && degree < 180) && !( degree > 56 && degree < 58 ) && !( degree > 307  && degree < 310 ) && !(degree > 180 && degree < 181) ){
                 continue;                
             }
 

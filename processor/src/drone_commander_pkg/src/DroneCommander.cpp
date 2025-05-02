@@ -28,6 +28,8 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
     public:
         DroneCommander(): Node("drone_commander")
         {
+            RCLCPP_INFO(this->get_logger(), "START DRONE COMMANDER");
+
             //passing the drone commander itself into the PositionControl class. 
             position_control_ = nullptr; 
             uart_ = std::make_shared<UART>();
@@ -136,7 +138,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 3); //Get rid of magic numbers later
 
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
-                uart_->sendDistance(0); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
+                uart_->sendDistance(10);
                 hover_flag_ = true;
                 stop_flag_ = false;
             }
@@ -206,7 +208,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
             }
             else if (resume_flag_){
-                uart_->sendDistance(1000); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
+                uart_->sendDistance(256); //CHANGE TO CORRECT DISTANCE LATER FOR HORIZONTAL
                 RCLCPP_INFO(this->get_logger(), "Sent resume command to the vehicle.");
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
                 resume_flag_ = false;

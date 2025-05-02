@@ -18,10 +18,15 @@
 #include "camera_scan_pkg/msg/obstacle.hpp"
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
 
-#define COLLISION_X 930
-#define COLLISION_X2 1037
-#define COLLISION_Y 949
-#define COLLISION_Y2 1009
+#define COLLISION_X 866
+#define COLLISION_X2 993
+#define COLLISION_Y 934
+#define COLLISION_Y2 1007
+
+// #define COLLISION_X 640
+// #define COLLISION_X2 1280
+// #define COLLISION_Y 360
+// #define COLLISION_Y2 720
 
 class ImageAnalysis : public rclcpp::Node {
    public:
@@ -74,7 +79,7 @@ class ImageAnalysis : public rclcpp::Node {
         );
         
         // Create Canny Edge Detector (That way its not recreated each iteration) 
-        canny = cv::cuda::createCannyEdgeDetector(100, 200);
+        canny = cv::cuda::createCannyEdgeDetector(0, 255);
         // Create Fast Feature Detector (That way its not recreated each iteration) 
         fast = cv::cuda::FastFeatureDetector::create();
         // Create Optical Flow Calculator (That way its not recreated each iteration) 
@@ -199,14 +204,11 @@ class ImageAnalysis : public rclcpp::Node {
                 rect.points(points);
                 
                 // Check if any of obstacle is within collision boundary
-                bool within_collision = false;
-                for (int i = 0; i < 4; ++i) {
-                    if (points[i].x >= COLLISION_X && points[i].x <= COLLISION_X2 &&
-                        points[i].y >= COLLISION_Y && points[i].y <= COLLISION_Y2) {
-                        within_collision = true;
-                        break;
-                    }
-                }
+                float minX1 = std::min({points[0].x, points[1].x, points[2].x, points[3].x});
+                float maxX1 = std::max({points[0].x, points[1].x, points[2].x, points[3].x});
+                float minY1 = std::min({points[0].y, points[1].y, points[2].y, points[3].y});
+                float maxY1 = std::max({points[0].y, points[1].y, points[2].y, points[3].y});
+                bool within_collision = !(maxX1 < COLLISION_X || minX1 > COLLISION_X2 || maxY1 < COLLISION_Y || minY1 > COLLISION_Y2);
 
                 if (within_collision) {
                     // Declare Obstacle variables
@@ -376,8 +378,8 @@ class ImageAnalysis : public rclcpp::Node {
         msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
         grayscale();
-        threshold();
-        dilation();
+        // threshold();
+        // dilation();
         edgeDetection();
         msg = boundingBoxes(contours());
         featureDetection(msg);

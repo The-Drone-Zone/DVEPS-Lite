@@ -1,6 +1,7 @@
 [submodule "processor/src/px4_msgs"]
 	path = processor/src/px4_msgs
 	url = git@github.com:PX4/px4_msgs.git
+	branch = release/1.15
 [submodule "processor/src/mavlink"]
 	path = processor/src/mavlink
 	url = https://github.com/mavlink/c_library_v2.git
