@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-option(REROUTING_OPTION "Add rerouting functoinality to the build" OFF)
+option(REROUTING_OPTION "Add rerouting functionality to the build" OFF)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

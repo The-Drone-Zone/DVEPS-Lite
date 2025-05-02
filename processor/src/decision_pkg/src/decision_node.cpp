@@ -85,7 +85,7 @@ class DecisionController : public rclcpp::Node {
             mapping.mapped_image_obstacles = *msg;
 
             if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
-                RCLCPP_INFO(this->get_logger(), "STOP STOP STOP");
+                RCLCPP_INFO(this->get_logger(), "CAMERA STOP");
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
             }
@@ -112,8 +112,8 @@ class DecisionController : public rclcpp::Node {
             mapping.mapped_lidar_samples = *msg;
 
             // Image to LiDAR map function call goes here
-            if(check_stop()) {
-                RCLCPP_INFO(this->get_logger(), "STOPPING");
+            if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
+                RCLCPP_INFO(this->get_logger(), "LIDAR STOPPING");
                 //my drone command PR needs to pushed to dev before I pull in changes here.
             }
 
