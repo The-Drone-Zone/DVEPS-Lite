@@ -81,7 +81,7 @@ class DecisionController : public rclcpp::Node {
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
-            //printImageObstacles(msg);
+            printImageObstacles(msg);
             image_obstacles = *msg;
 
             if(msg->tracked_obstacle && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
