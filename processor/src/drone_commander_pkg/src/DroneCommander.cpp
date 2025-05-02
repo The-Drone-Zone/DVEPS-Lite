@@ -84,6 +84,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         int last_command_recieved = -1;
         double degree_ = 0.0;
         std::array<float, 3> current_pos = {};
+        std::array<float, 2> start_position = {};
         float position_X_copy = 0.0;
 
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
@@ -95,6 +96,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     turn_flag_ = false;
                     forward_flag_ = false;
                     break;
+#ifdef REROUTING_OPTION
                 case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d TURN TURN TURN", msg->command);
                     turn_flag_ = true;
@@ -114,6 +116,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     turn_flag_ = false; //probably rework the transition to forward so we stop turning exactly when we want too. Maybe
                     forward_flag_ = true;
                     break;
+#endif
                 default:
                     RCLCPP_INFO(this->get_logger(), "NO STOP");
                     break;
@@ -121,7 +124,8 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         }
 
         void commanderCallback() {    
-            
+            static TrajectorySetpoint forward_setpoint;
+
             if(position_control_->checkAnalysisHeight() && keep_checking_height){
                 custom_msg_pkg::msg::CommandAck msg_ack;
                 msg_ack.command = 0;
@@ -141,11 +145,12 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 hover_flag_ = true;
                 stop_flag_ = false;
             }
+#ifdef REROUTING_OPTION
             else if (turn_flag_ && in_offboard_control_){
                 //publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH, 0, 0, 0); //Get rid of magic numbers later
                 RCLCPP_INFO(this->get_logger(), "\n START turn command to the vehicle.");
                     px4_msgs::msg::TrajectorySetpoint msg;
-
+ 
                     if(commanded_turn){
                         msg = position_control_->turnByAngle(degree_, true);
                     }
@@ -171,12 +176,13 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
 
                 if(first_forward){
                     current_pos = position_control_->getLocalPosition();
-                    position_X_copy = current_pos[0];
-                    current_pos[0] += 5.0;
+                    start_position = { current_pos[0], current_pos[1] };
+
+                    forward_setpoint = position_control_->moveForwardByMeters(5);
                 }
 
                 publishOffboardCtlMsg();
-                trajectory_setpoint_publisher_->publish(position_control_->moveForwardByMeters(current_pos[0]));
+                trajectory_setpoint_publisher_->publish(forward_setpoint);
 
                 if(first_forward){
                     custom_msg_pkg::msg::CommandAck msg_ack;
@@ -186,7 +192,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     first_forward = false;
                 }
 
-                if(position_control_->checkDist(position_X_copy))
+                if(position_control_->checkDist(start_position))
                 {
                     forward_flag_ = false;
                     resume_flag_ = true;
@@ -212,6 +218,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 4);
                 resume_flag_ = false;
             }
+#endif
         }
 
 

@@ -20,7 +20,7 @@ class PositionControl {
 
         px4_msgs::msg::TrajectorySetpoint turnByAngle(float angle_degrees, bool commanded=false);
         px4_msgs::msg::TrajectorySetpoint moveForwardByMeters(float dist);
-        bool checkDist(float start_dist);
+        bool checkDist(std::array<float, 2> start_pos);
         bool checkAnalysisHeight();
         float getCurrentHeading();
         std::array<float, 3> getLocalPosition();
