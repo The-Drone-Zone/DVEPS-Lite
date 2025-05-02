@@ -96,6 +96,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     turn_flag_ = false;
                     forward_flag_ = false;
                     break;
+#ifdef REROUTING_OPTION
                 case custom_msg_pkg::msg::Command::TURN: //HIJACKED TO JUST CONTINUE MISSION RIGHT NOW.
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d TURN TURN TURN", msg->command);
                     turn_flag_ = true;
@@ -115,6 +116,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     turn_flag_ = false; //probably rework the transition to forward so we stop turning exactly when we want too. Maybe
                     forward_flag_ = true;
                     break;
+#endif
                 default:
                     RCLCPP_INFO(this->get_logger(), "NO STOP");
                     break;
