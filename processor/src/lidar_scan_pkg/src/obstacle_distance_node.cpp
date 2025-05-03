@@ -46,7 +46,7 @@ private:
         struct termios options{};
         tcgetattr(fd, &options);
     
-        // Set baud rate (must match the SiK radio setting)
+        // Set baud rate (must match the radio setting)
         cfsetispeed(&options, B57600);
         cfsetospeed(&options, B57600);
     
@@ -58,8 +58,8 @@ private:
         options.c_cflag &= ~CSTOPB;           // 1 stop bit
     
         // Flow control — try enabling if radios are wired for RTS/CTS
-        options.c_cflag |= CRTSCTS;        // Enable hardware flow control
-        // options.c_cflag &= ~CRTSCTS;          // Disable hardware flow control
+        // options.c_cflag |= CRTSCTS;        // Enable hardware flow control
+        options.c_cflag &= ~CRTSCTS;          // Disable hardware flow control
     
         options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // Raw input
         options.c_iflag &= ~(IXON | IXOFF | IXANY);          // No software flow control

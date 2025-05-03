@@ -27,13 +27,13 @@ class SLLidarClient : public rclcpp::Node {
             "scan", rclcpp::SensorDataQoS(), std::bind(&SLLidarClient::scanCallback, this, std::placeholders::_1));
 
         analysis_pub = this->create_publisher<custom_msg_pkg::msg::LidarPosition>("Lidar/analysis", rclcpp::QoS(rclcpp::KeepLast(10)));
-        pixhawk_pub = this->create_publisher<px4_msgs::msg::ObstacleDistance>("/fmu/in/obstacle_distance", 10);
+
+        RCLCPP_INFO(this->get_logger(), "LiDAR Analysis: STARTING ANALYSIS");
     }
 
    private:
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_info_sub_;
     rclcpp::Publisher<custom_msg_pkg::msg::LidarPosition>::SharedPtr analysis_pub;
-    rclcpp::Publisher<px4_msgs::msg::ObstacleDistance>::SharedPtr pixhawk_pub;
 
     // std::deque<std::vector<float>> scan_history_;
     std::vector<float> scan_history_;
@@ -42,31 +42,18 @@ class SLLidarClient : public rclcpp::Node {
 
 
     void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
+        static int scan_count = 0;  // persists across calls
+
+        if (scan_count <= 100) {
+            // Skip the first 20 scans
+            scan_count++;
+            return;
+        }
+
+
         int count = scan->scan_time / scan->time_increment;
         // RCLCPP_INFO(this->get_logger(), "I heard a laser scan %s[%d]", scan->header.frame_id.c_str(), count);
         // RCLCPP_INFO(this->get_logger(), "angle_range : [%f, %f]", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
-
-        // For testing lidar messages (we can change which points we publish later)
-        px4_msgs::msg::ObstacleDistance GCS_msg = px4_msgs::msg::ObstacleDistance();
-        GCS_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
-        GCS_msg.frame = px4_msgs::msg::ObstacleDistance::MAV_FRAME_BODY_FRD;
-        GCS_msg.sensor_type = px4_msgs::msg::ObstacleDistance::MAV_DISTANCE_SENSOR_LASER;
-        GCS_msg.increment = 1125;  // degrees per measurement
-        GCS_msg.min_distance = 100;  // 100 cm = 1 m
-        GCS_msg.max_distance = 4000;  // 4000 cm = 40 m
-        GCS_msg.angle_offset = 0.0f;
-
-        for (int i = 0; i < count; i+= 45) {
-            if (i <= count) {
-                float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
-                RCLCPP_INFO(this->get_logger(), "angle-distance : [%f, %f]", degree, scan->ranges[i]);
-                GCS_msg.distances[i / 45] = scan->ranges[i] * 100; // need to convert distance to cm (if not already)
-                GCS_msg.increment = scan->angle_increment * 45 * 10000;
-            }
-        }
-
-        RCLCPP_INFO(this->get_logger(), "range_size : %d", count);
-        pixhawk_pub->publish(GCS_msg);
         publish_analysis(this->analysis_pub, scan, count, scan->scan_time);
     }
 
@@ -86,7 +73,7 @@ class SLLidarClient : public rclcpp::Node {
                 continue;                
             }
 
-            if(scan->ranges[i] < msg.least_range) {
+            if(scan->ranges[i] < msg.least_range && scan->ranges[i] > 0) {
                 msg.least_range = scan->ranges[i]; //find the least range value in the scan
             }
         }
@@ -111,6 +98,11 @@ class SLLidarClient : public rclcpp::Node {
             //RCLCPP_INFO(this->get_logger(), "Collision Time: %f", collision_time);
             if (collision_time < 4.0) { //4.0 because we are going at 5/ms and 4*5 = 20 meters
                 msg.stop = true; //Here I am using multiple beams to signal a stop not just 1 beam
+                RCLCPP_INFO(this->get_logger(), "LiDAR Analysis: STOP");
+
+                for(int i = 0; i < scan_history_.size(); ++i){
+                    RCLCPP_INFO(this->get_logger(), "LiDAR Analysis: scan_hist[%d] = %f", i, scan_history_[i]);
+                }
             }
         } 
         

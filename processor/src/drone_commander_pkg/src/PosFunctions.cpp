@@ -158,7 +158,7 @@ float PositionControl::getCurrentHeading()
 bool PositionControl::checkAnalysisHeight()  {
     std::array<float, 3> current_pos = getLocalPosition();
 
-    return fabs(current_pos[2]) > 4.0;
+    return fabs(current_pos[2]) > 1;
 }
 
 std::array<float, 3> PositionControl::getLocalPosition()
