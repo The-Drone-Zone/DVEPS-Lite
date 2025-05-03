@@ -383,13 +383,13 @@ class CommandScreen:
     # data is of type OBSTACLE_DISTANCE from px4_msgs
     def update_lidar_plot(self, data=None):
         def update():
-            # For actual display
+            ANGLE_OFFSET = -3
             data.increment /= 1000.0
             angles = []
             angles2 = []
             distances = []
             for i in range(len(data.distances)):
-                angles.append((i * data.increment))
+                angles.append((i * data.increment) + ANGLE_OFFSET)
                 angles2.append((i * data.increment) + data.angle_offset)
                 distances.append(data.distances[i] / 100.0) # Convert distances from cm to m
 
@@ -412,8 +412,6 @@ class CommandScreen:
                 self.diagonal1[3] = distances * np.cos(np.radians(angles2))
             # Top left to bottom right diagonal (diagonal2)
             elif data.angle_offset == 228:
-                print(f"Angles: {angles2}")
-                print(f"Distances {distances}")
                 self.diagonal2[0] = distances * np.sin(np.radians(angles))
                 self.diagonal2[1] = distances * np.cos(np.radians(angles))
                 self.diagonal2[2] = distances * np.sin(np.radians(angles2))
