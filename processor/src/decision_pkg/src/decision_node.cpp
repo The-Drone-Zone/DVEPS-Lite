@@ -81,7 +81,7 @@ class DecisionController : public rclcpp::Node {
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
 
-            printImageObstacles(msg);
+            // printImageObstacles(msg);
             mapping.mapped_image_obstacles = *msg;
 
             if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
@@ -107,13 +107,13 @@ class DecisionController : public rclcpp::Node {
         void lidarCallback(const custom_msg_pkg::msg::LidarPosition::SharedPtr msg) {
             if(!reached_analysis_height.load(std::memory_order_acquire)) return;
             // Start time
-            auto start = std::chrono::high_resolution_clock::now();
+            // auto start = std::chrono::high_resolution_clock::now();
 
             mapping.mapped_lidar_samples = *msg;
 
             // Image to LiDAR map function call goes here
             if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
-                RCLCPP_INFO(this->get_logger(), "LIDAR STOPPING");
+                RCLCPP_INFO(this->get_logger(), "LIDAR STOP");
                 //my drone command PR needs to pushed to dev before I pull in changes here.
             }
 
@@ -122,18 +122,19 @@ class DecisionController : public rclcpp::Node {
             //NEED TO HAVE THE DRONE COMMAND PUSHED IN ORDER TO USE the current location functionality.
 
             // End time
-            auto end = std::chrono::high_resolution_clock::now();
+            // auto end = std::chrono::high_resolution_clock::now();
             // Compute duration
-            std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds >(end - start);
+            // std::chrono::milliseconds duration_ms = std::chrono::duration_cast<std::chrono::milliseconds >(end - start);
             // Print analysis time
-            RCLCPP_INFO(this->get_logger(), "Decision Time: %ld ms", duration_ms.count());
-            time_sum += duration_ms.count();
-            counter += 1;
-            RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
+            // RCLCPP_INFO(this->get_logger(), "Decision Time: %ld ms", duration_ms.count());
+            // time_sum += duration_ms.count();
+            // counter += 1;
+            // RCLCPP_INFO(this->get_logger(), "Current Average Decision FPS: %ld fps", 1000 / (time_sum / counter));
         }
 
         bool check_stop() {
-            if ((mapping.mapped_image_obstacles.obstacles.size() > 0 && (mapping.mapped_lidar_samples.least_range < 20)) || mapping.mapped_lidar_samples.stop || mapping.mapped_image_obstacles.tracked_obstacle) {
+            if (( mapping.mapped_image_obstacles.obstacles.size() > 0 && mapping.mapped_lidar_samples.least_range < 20) || 
+                    mapping.mapped_image_obstacles.tracked_obstacle || mapping.mapped_lidar_samples.stop) {
                 RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
                 return true;
             }

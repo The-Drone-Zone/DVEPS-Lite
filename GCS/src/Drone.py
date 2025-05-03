@@ -81,11 +81,13 @@ class Drone:
         self.logs.addDroneLog("Waiting for drone to have a global position estimate...")
 
     def mavlink_setup(self):
-        self.mavlink_connection = mavutil.mavlink_connection("udp:0.0.0.0:14552", 
-            baud=57600,
-            dialect='common',
-            force_mavlink2=True)
-        self.mavlink_connection.wait_heartbeat()
+        input_port = None
+        if os.name == "nt": # Windows
+            input_port = "com10"
+        elif os.name == "posix":  # Linux/macOS
+            input_port = "/dev/ttyUSB1"
+        self.mavlink_connection = mavutil.mavlink_connection(input_port, 
+            baud=57600)
         print("Connected to MAVLink!")
         # Start loop to receive LiDAR data
         self.get_lidar_samples()
@@ -191,11 +193,10 @@ class Drone:
             msg = self.mavlink_connection.recv_match(blocking=True)
             # print(f"Received mavlink message of type: {msg.get_type()}")
             if msg and msg.get_type() == 'OBSTACLE_DISTANCE':
-                # print(f"Received OBSTACLE_DISTANCE: {msg.distances}")
-                # print(f"Received OBSTACLE_DISTANCE: {msg.to_dict()}")
-                self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg.distances}")
                 if self.command_tab:
                     self.command_tab.update_lidar_plot(msg)
+                if self.connected and self.gps_ok:
+                    self.logs.addDroneLog(f"Received OBSTACLE_DISTANCE: {msg}")
 
     ## Button Click Event Handlers begin here ##
     def command_drone(self, selected_option):

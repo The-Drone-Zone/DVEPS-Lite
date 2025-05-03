@@ -47,7 +47,7 @@ class ImageAnalysis : public rclcpp::Node {
 
     std::vector<TrackedObstacle> tracked;
     // Number of frames tracked before we stop drone
-    const int MAX_TRACKED = 5;
+    const int MAX_TRACKED = 20;
 
     cv::cuda::GpuMat gpu_prevFrame;
     cv::cuda::GpuMat gpu_frame;
@@ -378,7 +378,7 @@ class ImageAnalysis : public rclcpp::Node {
         msg.tracked_obstacle = false;
         frame.copyTo(origFrame);
         grayscale();
-        // threshold();
+        threshold();
         // dilation();
         edgeDetection();
         msg = boundingBoxes(contours());
