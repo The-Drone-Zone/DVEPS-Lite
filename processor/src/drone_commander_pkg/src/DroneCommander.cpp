@@ -16,6 +16,8 @@
 #include <iostream>
 #include <condition_variable>
 #include <thread>
+#include <fstream>
+
 
 
 using namespace std::chrono;
@@ -45,6 +47,9 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 		    auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
             vehicle_command_ack_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleCommandAck>("/fmu/out/vehicle_command_ack", qos, std::bind(&DroneCommander::vehicle_command_ack_callback, this, std::placeholders::_1));
+
+            logfile.open("/home/dveps-lite/Documents/log/drone_commander_debug.log", std::ios::app);
+            logfile << "STARTING DRONE COMMANDER" << std::endl;
 
             timer_ = this->create_wall_timer(500ms, std::bind(&DroneCommander::commanderCallback, this));
             offboard_setpoint_counter_ = 0;
@@ -80,18 +85,21 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         bool resume_flag_ = false;
         bool hover_flag_ = false;
         bool resume_mission_flag = false;
-        bool keep_checking_height = true;
+        bool keep_checking_velocity = true;
         int last_command_recieved = -1;
         double degree_ = 0.0;
         std::array<float, 3> current_pos = {};
         std::array<float, 2> start_position = {};
         float position_X_copy = 0.0;
 
+        std::ofstream logfile;
+
         void checkCommand(const custom_msg_pkg::msg::Command::SharedPtr msg) {
             last_command_recieved = msg->command;
             switch(msg->command) {
                 case custom_msg_pkg::msg::Command::STOP:
                     RCLCPP_INFO(this->get_logger(), "Received Command: %d STOP STOP STOP", msg->command);
+                    logfile << "Received Command: " <<  msg->command << " STOP STOP STOP" << std::endl;
                     stop_flag_ = true;
                     turn_flag_ = false;
                     forward_flag_ = false;
@@ -126,14 +134,15 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
         void commanderCallback() {    
             static TrajectorySetpoint forward_setpoint;
 
-            if(position_control_->checkAnalysisHeight() && keep_checking_height){
+            if(position_control_->checkAnalysisVelocity() && keep_checking_velocity){
                 custom_msg_pkg::msg::CommandAck msg_ack;
                 msg_ack.command = 0;
                 msg_ack.result = 0;
-                msg_ack.height_reached = true;
+                msg_ack.velocity_reached = true;
                 command_ack_publisher_->publish(msg_ack);
-                RCLCPP_INFO(this->get_logger(), "HEIGHT IS GOOD");
-                keep_checking_height = false;
+                RCLCPP_INFO(this->get_logger(), "VELOCITY IS GOOD");
+                logfile << "VELOCITY IS GOOD" << std::endl;
+                keep_checking_velocity = false;
             }
 
             if(stop_flag_){
@@ -141,6 +150,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                 publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 4, 3); //Get rid of magic numbers later
 
                 RCLCPP_INFO(this->get_logger(), "Sent pause command to the vehicle.");
+                logfile << "Sent pause command to the vehicle." << std::endl;
                 uart_->sendDistance(10);
                 hover_flag_ = true;
                 stop_flag_ = false;
@@ -228,6 +238,8 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     case VehicleCommand::VEHICLE_CMD_DO_SET_MODE: { //braces are because i declare a varible inside case statement
                         RCLCPP_INFO(this->get_logger(), "Vehicle mode set");
                         RCLCPP_INFO(this->get_logger(), "Last command: %d", last_command_recieved);
+                        logfile <<  "Vehicle mode set" << std::endl;
+                        logfile << "Last command: " << last_command_recieved << std::endl;
 
                         custom_msg_pkg::msg::CommandAck msg_ack;
                         msg_ack.command = last_command_recieved;
@@ -237,11 +249,14 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
                     }
                     default:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
+                        logfile << "Vehicle command acknowledged" << std::endl;
+
                         break;
                 }
             }
             else {
                 RCLCPP_INFO(this->get_logger(), "Vehicle command failed");
+                logfile << "Vehicle command failed" << std::endl;
             }
         }
 
@@ -255,7 +270,7 @@ class DroneCommander : public rclcpp::Node//, public std::enable_shared_from_thi
             msg.param3 = param3;
             msg.target_system = 1;
             msg.target_component = 1;
-            msg.source_system = 1;
+            msg.source_system = 2;
             msg.source_component = 1;
             msg.from_external = true;
             msg.confirmation = 0;

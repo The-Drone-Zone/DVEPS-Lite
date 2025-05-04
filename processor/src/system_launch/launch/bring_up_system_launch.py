@@ -69,7 +69,7 @@ def generate_launch_description():
             executable='obstacle_distance_node',
             name='obstacle_distance_node',
             prefix='gnome-terminal --'
-        ),
+        )
         # Node(
         #     package='rqt_image_view',
         #     namespace='rqt_image_view',

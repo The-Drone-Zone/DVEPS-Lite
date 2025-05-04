@@ -8,4 +8,4 @@ int8 result # see VehicleCommandAck for imformation about different values
 int32 command
 
 
-bool height_reached
+bool velocity_reached
