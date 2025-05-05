@@ -1,0 +1,2 @@
+float32 least_range
+bool stop

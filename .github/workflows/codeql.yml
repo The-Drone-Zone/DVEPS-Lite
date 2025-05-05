@@ -1,15 +1,15 @@
 name: "CodeQL Advanced"
 
 on:
-  push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
+  # push:
+  #   branches: [ "main", "develop" ]
+  # pull_request:
+  #   branches: [ "main", "develop" ]
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }} 
     permissions:
       security-events: write
       packages: read
@@ -31,6 +31,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Pull Docker image builder container
+        run: docker pull dshay22/opencv_cuda_for_laptops:v3
+
       # Initialize CodeQL with the appropriate language and build mode
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -41,20 +44,27 @@ jobs:
           # queries: security-extended,security-and-quality
 
       # Build step for languages requiring manual mode
-      - name: Build code (manual build mode)
+      - name: Build code (docker build mode)
         if: matrix.build-mode == 'manual'
         run: |
           echo "Building code for ${{ matrix.language }}..."
-          if [ "${{ matrix.language }}" == "c-cpp" ]; then
-            echo "Running make or equivalent build commands for C/C++..."
-            cd processor
-            rm -rf build/
-            mkdir -p build &&
-            cd build &&
-            cmake .. &&
-            cmake --build .
-            exit 0
-          fi
+            if [ "${{ matrix.language }}" == "c-cpp" ]; then
+              docker run --rm -v $PWD:/workspace -w /workspace dshay22/opencv_cuda_for_laptops:v3 bash -c "
+                set -e
+                echo \"Building colcon\"
+                cd processor
+                rm -rf build/ install/ log/
+                export OpenCV_DIR="/usr/local/lib/cmake/opencv4"
+                source /opt/ros/humble/setup.bash
+                cd src/
+                git clone -b humble https://github.com/ros-perception/vision_opencv.git
+                apt install -y libboost-all-dev
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select cv_bridge image_geometry
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select vision_opencv
+                colcon build --cmake-args -DOpenCV_DIR=/usr/local/lib/cmake/opencv4 --packages-select camera_scan_pkg
+              "
+              exit 0
+            fi
 
       # Perform the CodeQL analysis
       - name: Perform CodeQL Analysis
