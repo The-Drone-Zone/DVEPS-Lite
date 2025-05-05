@@ -73,7 +73,7 @@ class SLLidarClient : public rclcpp::Node {
                 continue;                
             }
 
-            if(scan->ranges[i] < msg.least_range && scan->ranges[i] > 0) {
+            if(scan->ranges[i] < msg.least_range && scan->ranges[i] > 0 && scan->ranges[i] < 40) {
                 msg.least_range = scan->ranges[i]; //find the least range value in the scan
             }
         }
@@ -81,7 +81,9 @@ class SLLidarClient : public rclcpp::Node {
         if (scan_history_.size() >= HISTORY_SIZE) {
             scan_history_.erase(scan_history_.begin());
         }
-        push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
+        if (msg.least_range > 0 && msg.least_range < 40) {
+            push_back_max_size(scan_history_, msg.least_range, HISTORY_SIZE);
+        }
 
         if (scan_history_.size() < 2) return;
 

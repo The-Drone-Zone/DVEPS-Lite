@@ -23,7 +23,8 @@ void PositionControl::initSubscribers()
 void PositionControl::positionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
 {
     current_local_position_ = *msg;
-    //RCLCPP_INFO(commander_->get_logger(), "Local Position - X: %f, Y: %f, Z: %f", msg->x, msg->y, msg->z);
+    // RCLCPP_INFO(commander_->get_logger(), "Local Position - X: %f, Y: %f, Z: %f", msg->x, msg->y, msg->z);
+    // RCLCPP_INFO(commander_->get_logger(), "Local Velocity - X: %f, Y: %f", msg->vx, msg->vy);
 }
 
 void PositionControl::odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg)
@@ -44,7 +45,7 @@ void PositionControl::odometryCallback(const px4_msgs::msg::VehicleOdometry::Sha
 void PositionControl::globalPositionCallback(const px4_msgs::msg::VehicleGlobalPosition::SharedPtr msg)
 {
     current_global_position_ = *msg;
-    //RCLCPP_INFO(commander_->get_logger(), "Global Position - Lat: %f, Lon: %f, Alt: %f", msg->lat, msg->lon, msg->alt);
+    // RCLCPP_INFO(commander_->get_logger(), "Global Position - Lat: %f, Lon: %f, Alt: %f", msg->lat, msg->lon, msg->alt);
 }
 
 void PositionControl::initFrame()
@@ -158,7 +159,11 @@ float PositionControl::getCurrentHeading()
 bool PositionControl::checkAnalysisHeight()  {
     std::array<float, 3> current_pos = getLocalPosition();
 
-    return fabs(current_pos[2]) > 3.5;
+    return fabs(current_pos[2]) > 2.5;
+}
+
+bool PositionControl::checkAnalysisVelocity()  {
+    return current_local_position_.vy > 2;
 }
 
 std::array<float, 3> PositionControl::getLocalPosition()

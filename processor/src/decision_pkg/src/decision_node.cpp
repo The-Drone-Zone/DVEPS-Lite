@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <thread>
+#include <fstream>
 
 #include "camera_scan_pkg/msg/obstacle.hpp"
 #include "camera_scan_pkg/msg/obstacle_array.hpp"
@@ -42,8 +43,11 @@ class DecisionController : public rclcpp::Node {
 
             command_publisher_ = this->create_publisher<custom_msg_pkg::msg::Command>("DecisionController/command", 10);
             command_ack_subscrption_ = this->create_subscription<custom_msg_pkg::msg::CommandAck>("DecisionController/command_ack", 10, std::bind(&DecisionController::command_ack_callback, this, std::placeholders::_1));
-
+            
+            logfile.open("/home/dveps-lite/Documents/log/decision_node_debug.log", std::ios::app);
+            logfile << "STARTING DECISION" << std::endl;
             RCLCPP_INFO(this->get_logger(), "STARTING DECISION");
+            
             find_path_thread = std::thread(&DecisionController::find_path, this);
             decision_mode.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
             current_state.store(STATES::DEFAULT, std::memory_order_release); //DEAFULT==0
@@ -72,6 +76,7 @@ class DecisionController : public rclcpp::Node {
         Mapping mapping;
         std::atomic<bool> reached_analysis_height = false;
         int turn_count = 0;
+        std::ofstream logfile;
 
 
         void imageCallback(const camera_scan_pkg::msg::ObstacleArray::SharedPtr msg) {
@@ -80,12 +85,14 @@ class DecisionController : public rclcpp::Node {
             auto start = std::chrono::high_resolution_clock::now();
 
             RCLCPP_INFO(this->get_logger(), "Received %zu analyzed image obstacles", msg->obstacles.size());
+            logfile << "Received analyzed image obstacles" << std::endl;
 
             // printImageObstacles(msg);
             mapping.mapped_image_obstacles = *msg;
 
             if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "CAMERA STOP");
+                logfile << "CAMERA STOP" << std::endl;
                 publish_control_command(custom_msg_pkg::msg::Command::STOP);
                 outstanding_ack.store(true, std::memory_order_release); 
             }
@@ -114,6 +121,7 @@ class DecisionController : public rclcpp::Node {
             // Image to LiDAR map function call goes here
             if(check_stop() && current_state.load(std::memory_order_acquire) == 0 && !outstanding_ack.load(std::memory_order_acquire)) {
                 RCLCPP_INFO(this->get_logger(), "LIDAR STOP");
+                logfile << "LIDAR STOP" << std::endl;
                 //my drone command PR needs to pushed to dev before I pull in changes here.
             }
 
@@ -136,6 +144,7 @@ class DecisionController : public rclcpp::Node {
             if (( mapping.mapped_image_obstacles.obstacles.size() > 0 && mapping.mapped_lidar_samples.least_range < 20) || 
                     mapping.mapped_image_obstacles.tracked_obstacle || mapping.mapped_lidar_samples.stop) {
                 RCLCPP_INFO(this->get_logger(), "DECISION: STOP DETECTED");
+                logfile << "DECISION: STOP DETECTED" << std::endl;
                 return true;
             }
             else {
@@ -148,21 +157,24 @@ class DecisionController : public rclcpp::Node {
         // it only gets updated when an acknowledgement is received from the DroneCommander telling the decision_node
         // that the drone has successfully completed the command. ie the last completed command is the current state.
         void command_ack_callback(const custom_msg_pkg::msg::CommandAck::SharedPtr msg) {
-            RCLCPP_INFO(this->get_logger(), "Callback triggered: command=%d, result=%d, height_reached=%d",
-            msg->command, msg->result, msg->height_reached);
+            RCLCPP_INFO(this->get_logger(), "Callback triggered: command=%d, result=%d, velocity_reached=%d",
+            msg->command, msg->result, msg->velocity_reached);
 
-            if(msg->height_reached){
+            if(msg->velocity_reached){
                 reached_analysis_height.store(true, std::memory_order_release);
-                RCLCPP_INFO(this->get_logger(), "decision analysis height is good");
+                RCLCPP_INFO(this->get_logger(), "decision analysis velocity is good");
+                logfile << "decision analysis velocity is good" << std::endl;
             }
             else {
-                RCLCPP_INFO(this->get_logger(), "decision analysis height is BAD");
+                RCLCPP_INFO(this->get_logger(), "decision analysis velocity is BAD");
+                logfile << "deccision analysis veloccity is BAD" << std::endl;
             }
 
             if(msg->result == 0) {
                 switch(msg->command) {
                     case custom_msg_pkg::msg::Command::STOP:
                         RCLCPP_INFO(this->get_logger(), "Vehicle Stopped");
+                        logfile << "Vehicle Stopped" << std::endl;
                         current_state.store(STATES::STOP, std::memory_order_release); //STOP==1
                         break;
                     case custom_msg_pkg::msg::Command::TURN:
@@ -179,12 +191,14 @@ class DecisionController : public rclcpp::Node {
                     //     break;
                     default:
                         RCLCPP_INFO(this->get_logger(), "Vehicle command acknowledged");
+                        logfile << "Vehicle command acknowledged" << std::endl;
                         break;
                 }
                 outstanding_ack.store(false, std::memory_order_release);
             }
             else {
                 RCLCPP_INFO(this->get_logger(), "Vehicle command failed");
+                logfile << "Vehicle command failed" << std::endl;
             }
         }
 

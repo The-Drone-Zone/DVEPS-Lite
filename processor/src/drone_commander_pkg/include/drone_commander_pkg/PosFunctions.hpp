@@ -22,6 +22,7 @@ class PositionControl {
         px4_msgs::msg::TrajectorySetpoint moveForwardByMeters(float dist);
         bool checkDist(std::array<float, 2> start_pos);
         bool checkAnalysisHeight();
+        bool checkAnalysisVelocity();
         float getCurrentHeading();
         std::array<float, 3> getLocalPosition();
 

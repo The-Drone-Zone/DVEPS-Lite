@@ -27,7 +27,7 @@ if __name__ == "__main__":
             print("Running on Linux")
             mavsdk_server_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../mavsdk_server_linux.exe")
             # Change if using udp simulation (setup for radio)
-            input_port = "serial:/dev/ttyUSB0"
+            input_port = "serial:///dev/ttyUSB0:57600"
         mavsdk_process = subprocess.Popen([mavsdk_server_path, "--url", input_port], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         # Start GCS Application
